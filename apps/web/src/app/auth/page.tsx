@@ -20,8 +20,8 @@ export default async function AuthPage({
           <Link href="/" className="text-2xl font-bold tracking-tight mb-4">
             Money<span className="text-primary">Mitra</span>
           </Link>
-          <CardTitle>Welcome to MoneyMitra</CardTitle>
-          <CardDescription>Sign in or create an account to keep your financial data private.</CardDescription>
+          <CardTitle>{params.next === "/advisor" ? "Officer Login" : "Welcome to MoneyMitra"}</CardTitle>
+          <CardDescription>{params.next === "/advisor" ? "Authorized bank officers sign in here to access the Officer Portal." : "Sign in or create an account to keep your financial data private."}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {params.error && <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{params.error}</p>}
@@ -42,6 +42,7 @@ export default async function AuthPage({
             <Button type="submit" className="w-full">Sign in</Button>
           </form>
           <form action={signInWithGoogle}>
+            <input type="hidden" name="next" value={params.next ?? "/dashboard"} />
             <Button type="submit" variant="outline" className="w-full">Continue with Google</Button>
           </form>
           <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-center text-sm">

@@ -33,7 +33,7 @@ export async function signUp(formData: FormData) {
   redirect(data.session ? "/onboarding" : "/auth?message=Check your email to confirm your account");
 }
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(formData: FormData) {
   const supabase = await createClient();
   const requestHeaders = await headers();
   const forwardedHost = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
@@ -41,9 +41,12 @@ export async function signInWithGoogle() {
   const siteUrl = forwardedHost
     ? `${forwardedProto}://${forwardedHost}`
     : process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const next = String(formData.get("next") ?? "/dashboard");
+  const callbackUrl = new URL(`${siteUrl}/auth/callback`);
+  callbackUrl.searchParams.set("next", next.startsWith("/") ? next : "/dashboard");
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${siteUrl}/auth/callback` },
+    options: { redirectTo: callbackUrl.toString() },
   });
   if (error || !data.url) {
     redirect(`/auth?error=${encodeURIComponent(error?.message || "Google sign-in is unavailable")}`);

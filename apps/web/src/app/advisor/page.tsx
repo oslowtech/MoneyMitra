@@ -23,7 +23,7 @@ export default async function AdvisorPage() {
     ? await supabase.from("organization_members").select("role").eq("user_id", user.id).in("role", ["advisor", "admin"]).maybeSingle()
     : { data: null };
   if (!membership) {
-    return <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-8"><div className="max-w-md text-center space-y-4"><h1 className="text-2xl font-bold">Officer access required</h1><p className="text-muted-foreground">This portal is reserved for authorized Financial Wellbeing Officers and administrators.</p><a href="/dashboard" className="text-primary hover:underline">Return to your dashboard</a></div></main>;
+    return <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-8"><div className="max-w-md text-center space-y-4"><h1 className="text-2xl font-bold">Officer access required</h1><p className="text-muted-foreground">Your account is signed in, but it is not assigned to a bank organization as an advisor or administrator.</p><p className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-500">Ask your bank administrator to add your user ID to <code>organization_members</code> with role <code>advisor</code> or <code>admin</code>.</p><a href="/auth?next=/advisor" className="text-primary hover:underline">Return to Officer Login</a></div></main>;
   }
   const { data: customers } = await supabase.from("organization_members").select("user_id, profiles(id, full_name), financial_profiles(employment_type)").eq("role", "customer");
   const customerIds = (customers || []).map((customer) => customer.user_id);
