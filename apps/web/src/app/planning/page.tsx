@@ -31,7 +31,7 @@ export default function PlanningPage() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p className="text-muted-foreground">
-              "Because your income fluctuates between ₹800/day and ₹3,500/day, fixed monthly auto-debits risk causing overdrafts during slow weeks. MoneyMitra automatically prompts you to contribute <strong>10%–15%</strong> only on days when your net platform earnings exceed <strong>₹1,800</strong>."
+              &quot;Because your income fluctuates between ₹800/day and ₹3,500/day, fixed monthly auto-debits risk causing overdrafts during slow weeks. MoneyMitra automatically prompts you to contribute <strong>10%–15%</strong> only on days when your net platform earnings exceed <strong>₹1,800</strong>.&quot;
             </p>
           </CardContent>
         </Card>
@@ -56,7 +56,7 @@ export default function PlanningPage() {
                 <div className="bg-primary h-3 rounded-full" style={{ width: '25%' }}></div>
               </div>
               <p className="text-xs text-muted-foreground">
-                At your variable saving rate, you'll reach this in approx. <strong>4.5 months</strong>.
+                At your variable saving rate, you&apos;ll reach this in approx. <strong>4.5 months</strong>.
               </p>
             </CardContent>
           </Card>

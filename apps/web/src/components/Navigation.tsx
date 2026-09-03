@@ -15,6 +15,7 @@ import {
   UserPlus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { signOut } from '@/app/auth/actions';
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -84,6 +85,11 @@ export function Navigation() {
           </span>
           <span className="bg-secondary px-2 py-0.5 rounded text-[10px] text-foreground font-mono">v2.0</span>
         </div>
+        <form action={signOut}>
+          <button type="submit" className="w-full px-3 py-2 text-left text-xs text-muted-foreground hover:text-foreground">
+            Sign out
+          </button>
+        </form>
       </div>
     </aside>
   );

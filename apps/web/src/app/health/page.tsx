@@ -3,6 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ArrowDownIcon, ArrowUpIcon, AlertTriangleIcon, InfoIcon, TrendingDownIcon } from "lucide-react";
 import { fetchDistressPrediction } from "../actions";
 
+export const dynamic = "force-dynamic";
+
+interface RiskFactor {
+  feature_name: string;
+  feature_value: string;
+  impact: string;
+  rank: number;
+}
+
 export default async function HealthPage() {
   const prediction = await fetchDistressPrediction({
     income_trend: -0.18,
@@ -81,7 +90,7 @@ export default async function HealthPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {prediction.top_risk_factors.map((factor: any) => (
+              {prediction.top_risk_factors.map((factor: RiskFactor) => (
                 <div key={factor.feature_name} className="p-4 rounded-xl bg-secondary/50 border border-border">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Rank #{factor.rank}</span>
@@ -101,7 +110,7 @@ export default async function HealthPage() {
               <div className="text-sm">
                 <span className="font-bold text-foreground">Natural Language Explanation:</span>
                 <p className="text-muted-foreground mt-0.5">
-                  "Your financial resilience score dropped 8 points because your income from Uber declined by 18% over the past 30 days while your recurring essential expenses remained constant, reducing your liquid emergency buffer to 9 days."
+                  &quot;Your financial resilience score dropped 8 points because your income from Uber declined by 18% over the past 30 days while your recurring essential expenses remained constant, reducing your liquid emergency buffer to 9 days.&quot;
                 </p>
               </div>
             </div>

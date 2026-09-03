@@ -1,4 +1,5 @@
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -8,16 +9,14 @@ export default function Home() {
           Money<span className="text-primary">Mitra</span>
         </div>
         <nav className="hidden md:flex space-x-6 text-sm text-muted-foreground font-medium">
-          <a href="#" className="hover:text-primary transition-colors">Home</a>
-          <a href="#" className="hover:text-primary transition-colors">Features</a>
-          <a href="#" className="hover:text-primary transition-colors">PS4 Engine</a>
-          <a href="#" className="hover:text-primary transition-colors">Company</a>
+          <Link href="/" className="hover:text-primary transition-colors">Home</Link>
+          <Link href="/dashboard" className="hover:text-primary transition-colors">Features</Link>
+          <Link href="/health" className="hover:text-primary transition-colors">PS4 Engine</Link>
+          <Link href="/advisor" className="hover:text-primary transition-colors">Company</Link>
         </nav>
         <div className="flex items-center space-x-4">
-          <a href="#" className="text-sm font-medium hover:text-primary transition-colors">Log in</a>
-          <Button className="rounded-full font-bold px-6">
-            Sign up free
-          </Button>
+          <Link href="/dashboard" className="text-sm font-medium hover:text-primary transition-colors">Log in</Link>
+          <Link href="/onboarding" className={buttonVariants({ className: "rounded-full font-bold px-6" })}>Sign up free</Link>
         </div>
       </header>
 
@@ -37,12 +36,8 @@ export default function Home() {
         </p>
         
         <div className="flex items-center space-x-4">
-          <Button size="lg" className="rounded-full font-bold px-8 h-12 text-md">
-            Start Planning Now &rarr;
-          </Button>
-          <Button size="lg" variant="outline" className="rounded-full font-bold px-8 h-12 text-md bg-transparent border-border hover:bg-secondary">
-            See how it works
-          </Button>
+          <Link href="/onboarding" className={buttonVariants({ size: "lg", className: "rounded-full font-bold px-8 h-12 text-md" })}>Start Planning Now &rarr;</Link>
+          <Link href="/dashboard" className={buttonVariants({ size: "lg", variant: "outline", className: "rounded-full font-bold px-8 h-12 text-md bg-transparent border-border hover:bg-secondary" })}>See how it works</Link>
         </div>
       </main>
     </div>

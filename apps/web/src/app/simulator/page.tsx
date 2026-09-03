@@ -7,11 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Sliders, RefreshCw, AlertTriangle, ShieldCheck } from "lucide-react";
 import { runWhatIfSimulation } from "../actions";
 
+interface SimulationResult {
+  projected_income: number;
+  projected_expenses: number;
+  projected_cashflow: number;
+  emergency_buffer_days: number;
+  distress_risk_probability: number;
+  risk_status: string;
+}
+
 export default function SimulatorPage() {
   const [incomeChange, setIncomeChange] = useState<number>(-20);
   const [expenseChange, setExpenseChange] = useState<number>(0);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
-  const [simulationResult, setSimulationResult] = useState<any>({
+  const [simulationResult, setSimulationResult] = useState<SimulationResult>({
     projected_income: 19600,
     projected_expenses: 15400,
     projected_cashflow: -3800,

@@ -1,8 +1,10 @@
 import { Navigation } from "@/components/Navigation";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowDownIcon, ArrowUpIcon, AlertTriangleIcon, CheckCircle2Icon } from "lucide-react";
-import { fetchIncomeVolatility } from "../actions";
+import { fetchIncomeVolatility, fetchSafeToSpend } from "../actions";
+
+export const dynamic = "force-dynamic";
 
 // Mock Gig Worker Income Data
 const MOCK_INCOME_RECORDS = [
@@ -17,8 +19,19 @@ const MOCK_INCOME_RECORDS = [
 ];
 
 export default async function DashboardPage() {
-  const mlResult = await fetchIncomeVolatility(MOCK_INCOME_RECORDS);
-  const cvPercentage = mlResult?.volatility ? (mlResult.volatility * 100).toFixed(1) : "45.0";
+  const [mlResult, safeToSpend] = await Promise.all([
+    fetchIncomeVolatility(MOCK_INCOME_RECORDS),
+    fetchSafeToSpend({
+      current_balance: 8000,
+      expected_income_min: 3500,
+      expected_income_max: 5200,
+      essential_expenses: 5000,
+      upcoming_debt_obligations: 3000,
+    }),
+  ]);
+  const cv = mlResult?.coefficient_of_variation ?? mlResult?.volatility ?? 0.45;
+  const cvPercentage = (cv * 100).toFixed(1);
+  const weeklySafeToSpend = safeToSpend?.safe_to_spend_weekly ?? 0;
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -31,7 +44,7 @@ export default async function DashboardPage() {
             <p className="text-muted-foreground">Good afternoon, Ravi. Here is your financial trajectory.</p>
           </div>
           <div className="flex items-center space-x-4">
-            <Button variant="outline" className="rounded-full">Add Income</Button>
+            <a href="/money" className={buttonVariants({ variant: "outline", className: "rounded-full" })}>Add Income</a>
             <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">R</div>
           </div>
         </header>
@@ -47,13 +60,13 @@ export default async function DashboardPage() {
               <CardDescription>Based on expected income and upcoming obligations</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-5xl font-black mb-4">₹2,150 <span className="text-xl text-muted-foreground font-normal">this week</span></div>
+              <div className="text-5xl font-black mb-4">₹{Math.round(weeklySafeToSpend).toLocaleString("en-IN")} <span className="text-xl text-muted-foreground font-normal">this week</span></div>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex justify-between"><span>Current balance</span> <span className="text-foreground">₹8,000</span></div>
                 <div className="flex justify-between"><span>Expected income</span> <span className="text-green-500">+ ₹4,200</span></div>
                 <div className="flex justify-between"><span>Essential expenses</span> <span className="text-red-500">- ₹5,000</span></div>
                 <div className="flex justify-between"><span>Upcoming EMI</span> <span className="text-red-500">- ₹3,000</span></div>
-                <div className="flex justify-between font-medium pt-2 border-t border-border"><span>Safety buffer</span> <span className="text-primary">- ₹2,050</span></div>
+                <div className="flex justify-between font-medium pt-2 border-t border-border"><span>Safety buffer</span> <span className="text-primary">- ₹{Math.round(safeToSpend?.safety_buffer_reserved ?? 0).toLocaleString("en-IN")}</span></div>
               </div>
             </CardContent>
           </Card>

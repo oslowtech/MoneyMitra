@@ -2,20 +2,19 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, ArrowRight, ArrowLeft, ShieldCheck, Sparkles, UploadCloud } from "lucide-react";
+import { saveOnboarding } from "../auth/actions";
 
 export default function OnboardingPage() {
-  const router = useRouter();
   const [step, setStep] = useState<number>(1);
   const [incomeType, setIncomeType] = useState<string>('gig');
   const [frequency, setFrequency] = useState<string>('irregular');
   const [goal, setGoal] = useState<string>('buffer');
 
-  const handleComplete = () => {
-    router.push('/dashboard');
+  const handleComplete = async () => {
+    await saveOnboarding({ incomeType, frequency, goal });
   };
 
   return (
