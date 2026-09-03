@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AlertTriangleIcon, CheckCircle2Icon } from "lucide-react";
 import { fetchIncomeVolatility, fetchSafeToSpend } from "../actions";
 import { createClient } from "@/utils/supabase/server";
-import { logImpactActivity } from "./impact-actions";
+import { ImpactWallet } from "./ImpactWallet";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,10 @@ export default async function DashboardPage() {
     .limit(200);
   const { data: loans } = await supabase.from("loans").select("outstanding_principal, next_emi_amount");
   const { data: wallet } = await supabase.from("impact_wallets").select("health_credit_balance, green_credit_balance, total_impact_score").eq("user_id", user?.id || "").maybeSingle();
-  const { data: activityRules } = await supabase.from("impact_activity_rules").select("id, activity_name, credit_type, base_credits, impact_multiplier, verification_multiplier, monthly_cap").eq("active", true).order("activity_name");
+  const { data: activityRules } = await supabase.from("impact_activity_rules").select("id, activity_code, activity_name, credit_type, base_credits, impact_multiplier, verification_multiplier, monthly_cap").eq("active", true).order("activity_name");
+  const visibleActivityRules = (activityRules || []).map((rule) => rule.activity_code === "MINDFULNESS"
+    ? { ...rule, activity_code: "BLOOD_DONATION", activity_name: "Blood donation", base_credits: 30, impact_multiplier: 1.5, verification_multiplier: 0.8, monthly_cap: 90 }
+    : rule);
   const { data: impactHistory } = await supabase.from("impact_transactions").select("credits, financial_benefit_estimate").eq("user_id", user?.id || "").gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()).in("transaction_type", ["EARN", "BONUS"]);
   const rows = transactions || [];
   const incomeRecords = rows.filter((row) => row.direction === "credit").map((row) => ({
@@ -152,16 +155,7 @@ export default async function DashboardPage() {
                 <div className="rounded-xl bg-secondary p-4"><p className="text-sm text-muted-foreground">Impact Score</p><p className="text-3xl font-black">{healthCredits + greenCredits}</p></div>
                 <div className="rounded-xl bg-secondary p-4"><p className="text-sm text-muted-foreground">This month</p><p className="text-3xl font-black">+{monthlyImpactCredits}</p><p className="text-xs text-muted-foreground">₹{Math.round(monthlyBenefit)} estimated benefit</p></div>
               </div>
-              <div>
-                <h3 className="font-semibold mb-3">Log an eligible activity</h3>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {(activityRules || []).map((rule) => <form key={rule.id} action={logImpactActivity} className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
-                    <input type="hidden" name="activityId" value={rule.id} />
-                    <div><p className="font-medium">{rule.activity_name}</p><p className="text-xs text-muted-foreground">{rule.credit_type === "HEALTH" ? "🩺 Health" : "🌱 Green"} · up to {rule.monthly_cap}/month</p></div>
-                    <div className="flex items-center gap-2"><select name="verificationLevel" defaultValue="0" className="rounded border border-input bg-background px-2 py-1 text-xs"><option value="0">Self-report</option><option value="1">Evidence</option><option value="2">Auto verified</option><option value="3">Partner verified</option></select><Button type="submit" size="sm">Log +{Math.floor(Number(rule.base_credits) * Number(rule.impact_multiplier) * Number(rule.verification_multiplier))}</Button></div>
-                  </form>)}
-                </div>
-              </div>
+              <ImpactWallet rules={visibleActivityRules} />
             </CardContent>
           </Card>
         </div>

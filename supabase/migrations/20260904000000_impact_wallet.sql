@@ -81,7 +81,7 @@ INSERT INTO public.impact_activity_rules (activity_code, activity_name, credit_t
 VALUES
   ('WALKING', '20–30 minute walk', 'HEALTH', 'physical_activity', 5, 1, 0.5, 'daily', 200, 0),
   ('PREVENTIVE_CHECKUP', 'Preventive health checkup', 'HEALTH', 'preventive_care', 40, 1.5, 0.8, 'annual', 100, 0),
-  ('MINDFULNESS', 'Mindfulness session', 'HEALTH', 'wellness', 5, 1, 0.5, 'daily', 100, 0),
+  ('BLOOD_DONATION', 'Blood donation', 'HEALTH', 'preventive_care', 30, 1.5, 0.8, 'quarterly', 90, 0),
   ('PUBLIC_TRANSPORT', 'Public transport trip', 'GREEN', 'mobility', 5, 1.25, 0.5, 'daily', 150, 80),
   ('CYCLING', 'Cycling instead of motorized transport', 'GREEN', 'mobility', 8, 1.25, 0.5, 'daily', 150, 60),
   ('E_WASTE', 'E-waste recycling', 'GREEN', 'waste_management', 30, 1.5, 0.8, 'monthly', 90, 0)

@@ -172,7 +172,10 @@ In your Supabase project SQL editor, run every migration file in order:
 7. `supabase/migrations/20260903000006_bank_connection_consent.sql`
 8. `supabase/migrations/20260903000007_officer_portfolio_access.sql`
 9. `supabase/migrations/20260904000000_impact_wallet.sql`
-10. `supabase/seed.sql`
+10. `supabase/migrations/20260904000001_impact_evidence.sql`
+11. `supabase/migrations/20260904000002_single_use_evidence.sql`
+12. `supabase/migrations/20260904000003_blood_donation_activity.sql`
+13. `supabase/seed.sql`
 
 Do not run only the latest migration: the `profiles` table is created by the core schema migration.
 

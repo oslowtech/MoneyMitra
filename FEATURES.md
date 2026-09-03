@@ -178,6 +178,16 @@ level. Activity balances and the monthly earned total are stored in Supabase.
 The wallet does not penalize health conditions or missed activities, and credits do not
 change the financial distress score. Financial benefit values are estimates only.
 
+Evidence is required for every activity submission. Walking and cycling can be
+submitted from a Google Fit or fitness-watch CSV with `date,activity,duration_minutes`;
+dates must use `YYYY-MM-DD`, and only `WALKING` and `CYCLING` rows are accepted. Other
+activities use an evidence URL or QR reference. The Dashboard camera scans
+provider-issued QR codes and places the scanned value in the evidence field for review.
+MoneyMitra does not generate or save test QR codes in the frontend; test evidence must
+come from an approved provider or a controlled external test fixture.
+Every non-empty evidence reference is single-use. A database unique index rejects reuse,
+including concurrent duplicate submissions, and the user receives an explicit error.
+
 ## 9. Financial analytics engine
 
 The Python FastAPI service provides:
@@ -343,7 +353,10 @@ Run migrations in order in the Supabase SQL Editor:
 7. `20260903000006_bank_connection_consent.sql`
 8. `20260903000007_officer_portfolio_access.sql`
 9. `20260904000000_impact_wallet.sql`
-10. `seed.sql`
+10. `20260904000001_impact_evidence.sql`
+11. `20260904000002_single_use_evidence.sql`
+12. `20260904000003_blood_donation_activity.sql`
+13. `seed.sql`
 
 The migrations are designed to be safely rerun where possible.
 
