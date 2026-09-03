@@ -28,6 +28,14 @@ Officer access is intended for users with an organization membership role of:
 
 Administrators can manage organization memberships, risk policies, product configuration, model versions, and audit requirements. Administrative workflows are represented in the database model and can be expanded through the Officer Portal.
 
+### Officer login
+
+There is no separate bank-password login inside MoneyMitra. Officers select **Officer
+Login** on the landing or authentication page, authenticate with Supabase Auth, and
+are redirected to `/advisor`. The portal then checks their `organization_members`
+record. An administrator must assign the `advisor` or `admin` role; officers cannot
+grant access to themselves.
+
 ## 2. Authentication and account security
 
 - Supabase Auth manages sessions and identities.
@@ -68,6 +76,22 @@ Import behavior:
 - Associates every row with the authenticated user.
 - Reloads the user’s transaction list after import.
 - Calculates income, expenses, and essential outflow from saved rows.
+
+### Consent-based bank connections
+
+The Money page also records read-only bank consent from an approved Open Banking or
+Account Aggregator provider. The `bank_connections` table stores only:
+
+- Bank/institution name
+- Provider name
+- Provider-generated connection reference
+- Consent scope and status
+- Consent and revocation timestamps
+
+MoneyMitra must never collect or store bank usernames, passwords, PINs, or OTPs. A
+production provider should host the bank authentication and return a tokenized
+connection reference. Customers can revoke an active connection from the Money page.
+Only active, consented customers are eligible for the officer portfolio.
 
 Required CSV fields:
 
@@ -133,7 +157,28 @@ Recommendation examples:
 
 The page clearly identifies itself as the Customer view and does not show officer case data.
 
-## 8. Financial analytics engine
+## 8. Impact Credit Wallet
+
+The Dashboard includes a unified Impact Credit Wallet with two separate balances:
+
+- Health Credits (HC) for positive preventive-health and wellbeing actions.
+- Green Credits (GC) for sustainable mobility, waste, water, and energy actions.
+
+Credits are calculated transparently:
+
+```text
+floor(base credits * impact multiplier * verification multiplier)
+```
+
+Verification levels are self-reported (0.5x), evidence submitted (0.8x), automatically
+verified (1.0x), and partner/provider verified (1.2x). Each activity has a monthly cap.
+The dashboard allows users to log eligible activities and select their verification
+level. Activity balances and the monthly earned total are stored in Supabase.
+
+The wallet does not penalize health conditions or missed activities, and credits do not
+change the financial distress score. Financial benefit values are estimates only.
+
+## 9. Financial analytics engine
 
 The Python FastAPI service provides:
 
@@ -149,7 +194,7 @@ The Python FastAPI service provides:
 
 The web app includes fallback calculations for selected analytics if the ML service is unavailable.
 
-## 9. Safe-to-Spend calculation
+## 10. Safe-to-Spend calculation
 
 The service estimates:
 
@@ -164,7 +209,7 @@ safe-to-spend = balance + conservative income
 
 The result is never negative and includes a weekly spending slice.
 
-## 10. What-if simulator
+## 11. What-if simulator
 
 Customers can change:
 
@@ -180,7 +225,7 @@ The simulator returns:
 - Distress risk probability
 - Risk status
 
-## 11. Officer Portal
+## 12. Officer Portal
 
 The Officer Portal is separate from customer insights and is intended for authorized bank staff.
 
@@ -193,10 +238,18 @@ It supports the display of:
 - Customer buffer days
 - Income volatility
 - Intervention status
+- Active bank-consent status
+- Portfolio counts calculated from consented customer transactions
+
+Risk indicators are decision-support signals for trained human officers. They must
+not be used as an automatic loan denial, account closure, or other adverse action.
+The current portfolio calculation uses recorded income and expenses as a transparent
+baseline; a production deployment should replace or supplement it with the approved
+bank provider's normalized transaction feed.
 
 Unauthorized users see an access message and cannot view the officer dashboard.
 
-## 12. Database and privacy
+## 13. Database and privacy
 
 Supabase PostgreSQL is the source of truth.
 
@@ -210,6 +263,7 @@ Important tables include:
 - `income_records`
 - `transactions`
 - `statement_imports`
+- `bank_connections`
 - `savings_goals`
 - `loans`
 - `loan_payments`
@@ -218,6 +272,11 @@ Important tables include:
 - `recommendations`
 - `interventions`
 - `simulations`
+- `impact_activity_rules`
+- `impact_wallets`
+- `impact_transactions`
+- `impact_rewards`
+- `impact_redemptions`
 
 Customer-owned tables use policies based on:
 
@@ -227,7 +286,12 @@ auth.uid() = user_id
 
 This prevents one customer from reading or modifying another customer’s financial records.
 
-## 13. Application routes
+Officer portfolio access is restricted by the `is_org_staff` database function and
+organization membership. Officers can read only consented customer data within their
+organization. Apply `20260903000007_officer_portfolio_access.sql` before using the
+portal.
+
+## 14. Application routes
 
 | Route | Description |
 |---|---|
@@ -243,7 +307,7 @@ This prevents one customer from reading or modifying another customer’s financ
 | `/simulator` | What-if financial planning |
 | `/advisor` | Authorized Officer Portal |
 
-## 14. Local development
+## 15. Local development
 
 Start the ML service:
 
@@ -266,7 +330,7 @@ Open:
 http://localhost:3000
 ```
 
-## 15. Supabase setup
+## 16. Supabase setup
 
 Run migrations in order in the Supabase SQL Editor:
 
@@ -276,11 +340,14 @@ Run migrations in order in the Supabase SQL Editor:
 4. `20260903000003_user_statements.sql`
 5. `20260903000004_goal_rls.sql`
 6. `20260903000005_loan_emi_fields.sql`
-7. `seed.sql`
+7. `20260903000006_bank_connection_consent.sql`
+8. `20260903000007_officer_portfolio_access.sql`
+9. `20260904000000_impact_wallet.sql`
+10. `seed.sql`
 
 The migrations are designed to be safely rerun where possible.
 
-## 16. Google authentication setup
+## 17. Google authentication setup
 
 In Supabase:
 
@@ -297,7 +364,7 @@ https://<project-ref>.supabase.co/auth/v1/callback
 
 Google authentication cannot work until the provider is enabled in Supabase.
 
-## 17. Validation
+## 18. Validation
 
 Existing validation commands:
 
@@ -313,4 +380,3 @@ The Python service can be checked with:
 cd D:\PROJECTS\MoneyMitra\services\ml
 python -m compileall -q . -x "venv"
 ```
-

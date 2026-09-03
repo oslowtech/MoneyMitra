@@ -1,9 +1,10 @@
 import { Navigation } from "@/components/Navigation";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangleIcon, CheckCircle2Icon } from "lucide-react";
 import { fetchIncomeVolatility, fetchSafeToSpend } from "../actions";
 import { createClient } from "@/utils/supabase/server";
+import { logImpactActivity } from "./impact-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,9 @@ export default async function DashboardPage() {
     .order("transaction_date", { ascending: false })
     .limit(200);
   const { data: loans } = await supabase.from("loans").select("outstanding_principal, next_emi_amount");
+  const { data: wallet } = await supabase.from("impact_wallets").select("health_credit_balance, green_credit_balance, total_impact_score").eq("user_id", user?.id || "").maybeSingle();
+  const { data: activityRules } = await supabase.from("impact_activity_rules").select("id, activity_name, credit_type, base_credits, impact_multiplier, verification_multiplier, monthly_cap").eq("active", true).order("activity_name");
+  const { data: impactHistory } = await supabase.from("impact_transactions").select("credits, financial_benefit_estimate").eq("user_id", user?.id || "").gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()).in("transaction_type", ["EARN", "BONUS"]);
   const rows = transactions || [];
   const incomeRecords = rows.filter((row) => row.direction === "credit").map((row) => ({
     amount: Number(row.amount), date: row.transaction_date, source: row.source || "Other",
@@ -49,6 +53,10 @@ export default async function DashboardPage() {
   const cvPercentage = (cv * 100).toFixed(1);
   const weeklySafeToSpend = safeToSpend?.safe_to_spend_weekly ?? 0;
   const stabilityScore = mlResult?.income_stability_score ?? 50;
+  const healthCredits = Number(wallet?.health_credit_balance || 0);
+  const greenCredits = Number(wallet?.green_credit_balance || 0);
+  const monthlyImpactCredits = (impactHistory || []).reduce((sum, entry) => sum + Number(entry.credits), 0);
+  const monthlyBenefit = (impactHistory || []).reduce((sum, entry) => sum + Number(entry.financial_benefit_estimate || 0), 0);
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -128,6 +136,31 @@ export default async function DashboardPage() {
                     <div className="text-xs text-muted-foreground mt-1">{(total / (incomeTotal || 1) * 100).toFixed(0)}% of recorded income</div>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="col-span-1 md:col-span-3 border-primary/30 bg-card/60">
+            <CardHeader>
+              <CardTitle>Impact Credit Wallet</CardTitle>
+              <CardDescription>Reward healthy and sustainable actions. Credits are separate and do not affect your financial-health score.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="rounded-xl bg-primary/10 p-4"><p className="text-sm text-muted-foreground">Health Credits</p><p className="text-3xl font-black text-primary">{healthCredits}</p></div>
+                <div className="rounded-xl bg-green-500/10 p-4"><p className="text-sm text-muted-foreground">Green Credits</p><p className="text-3xl font-black text-green-400">{greenCredits}</p></div>
+                <div className="rounded-xl bg-secondary p-4"><p className="text-sm text-muted-foreground">Impact Score</p><p className="text-3xl font-black">{healthCredits + greenCredits}</p></div>
+                <div className="rounded-xl bg-secondary p-4"><p className="text-sm text-muted-foreground">This month</p><p className="text-3xl font-black">+{monthlyImpactCredits}</p><p className="text-xs text-muted-foreground">₹{Math.round(monthlyBenefit)} estimated benefit</p></div>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-3">Log an eligible activity</h3>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {(activityRules || []).map((rule) => <form key={rule.id} action={logImpactActivity} className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+                    <input type="hidden" name="activityId" value={rule.id} />
+                    <div><p className="font-medium">{rule.activity_name}</p><p className="text-xs text-muted-foreground">{rule.credit_type === "HEALTH" ? "🩺 Health" : "🌱 Green"} · up to {rule.monthly_cap}/month</p></div>
+                    <div className="flex items-center gap-2"><select name="verificationLevel" defaultValue="0" className="rounded border border-input bg-background px-2 py-1 text-xs"><option value="0">Self-report</option><option value="1">Evidence</option><option value="2">Auto verified</option><option value="3">Partner verified</option></select><Button type="submit" size="sm">Log +{Math.floor(Number(rule.base_credits) * Number(rule.impact_multiplier) * Number(rule.verification_multiplier))}</Button></div>
+                  </form>)}
+                </div>
               </div>
             </CardContent>
           </Card>

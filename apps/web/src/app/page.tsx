@@ -16,6 +16,7 @@ export default function Home() {
         </nav>
         <div className="flex items-center space-x-4">
           <Link href="/auth" className="text-sm font-medium hover:text-primary transition-colors">Log in</Link>
+          <Link href="/auth?next=/advisor" className="text-sm font-medium text-primary hover:underline transition-colors">Officer Login</Link>
           <Link href="/auth" className={buttonVariants({ className: "rounded-full font-bold px-6" })}>Sign up free</Link>
         </div>
       </header>

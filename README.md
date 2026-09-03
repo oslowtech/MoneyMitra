@@ -108,6 +108,21 @@ as **Valid** and HTTPS is enabled.
 
 ### Update Supabase URLs
 
+### Officer login
+
+Officers use the **Officer Login** link on the landing page or the regular `/auth`
+page with `/advisor` as the destination. There is no separate password database.
+After authentication, the `/advisor` route checks `organization_members`; only users
+assigned the `advisor` or `admin` role by an existing administrator can enter.
+Do not let officers assign their own role. An administrator must create the membership
+in Supabase using the officer's authenticated user ID and the bank organization ID.
+For example, after creating the officer account, an administrator can run:
+
+```sql
+INSERT INTO public.organization_members (organization_id, user_id, role)
+VALUES ('<bank-organization-id>', '<officer-auth-user-id>', 'advisor');
+```
+
 In Supabase **Authentication → URL Configuration**:
 
 - Site URL: `https://<your-domain>`
@@ -154,7 +169,10 @@ In your Supabase project SQL editor, run every migration file in order:
 4. `supabase/migrations/20260903000003_user_statements.sql`
 5. `supabase/migrations/20260903000004_goal_rls.sql`
 6. `supabase/migrations/20260903000005_loan_emi_fields.sql`
-7. `supabase/seed.sql`
+7. `supabase/migrations/20260903000006_bank_connection_consent.sql`
+8. `supabase/migrations/20260903000007_officer_portfolio_access.sql`
+9. `supabase/migrations/20260904000000_impact_wallet.sql`
+10. `supabase/seed.sql`
 
 Do not run only the latest migration: the `profiles` table is created by the core schema migration.
 

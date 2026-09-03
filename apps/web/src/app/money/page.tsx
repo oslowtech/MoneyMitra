@@ -6,14 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { UploadCloud, CheckCircle, FileText, ArrowUpRight, ArrowDownLeft, ShieldCheck } from "lucide-react";
 import { getUserTransactions, importStatement, type UserTransaction } from "./actions";
+import { connectBank, getBankConnections, revokeBankConnection, type BankConnection } from "./bank-actions";
 
 export default function MoneyPage() {
   const [transactions, setTransactions] = useState<UserTransaction[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [bankConnections, setBankConnections] = useState<BankConnection[]>([]);
 
   useEffect(() => {
     getUserTransactions().then(setTransactions).catch((error) => console.error(error));
+    getBankConnections().then(setBankConnections).catch((error) => console.error(error));
   }, []);
 
   const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,6 +79,71 @@ export default function MoneyPage() {
             <span className="font-medium text-sm">Statement parsed successfully! Canonical normalizer categorized essential vs discretionary spending.</span>
           </div>
         )}
+
+        <Card className="border-border bg-card/60">
+          <CardHeader>
+            <CardTitle>Read-only bank connections</CardTitle>
+            <CardDescription>
+              Connect through an approved Open Banking or Account Aggregator provider. MoneyMitra never asks for bank passwords, OTPs, or login details.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {bankConnections.filter((connection) => connection.status === "active").map((connection) => (
+              <div key={connection.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div>
+                  <p className="font-semibold">{connection.institution_name}</p>
+                  <p className="text-xs text-muted-foreground">Provider: {connection.provider} · Read-only consent</p>
+                </div>
+                <form action={async (formData) => {
+                  await revokeBankConnection(formData);
+                  setBankConnections(await getBankConnections());
+                }}>
+                  <input type="hidden" name="id" value={connection.id} />
+                  <Button type="submit" variant="outline" size="sm">Revoke access</Button>
+                </form>
+              </div>
+            ))}
+            <form action={async (formData) => {
+              await connectBank(formData);
+              setBankConnections(await getBankConnections());
+            }} className="grid gap-3 md:grid-cols-4">
+              <select name="institutionName" required defaultValue="" className="rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                <option value="" disabled>Select your bank</option>
+                <option>State Bank of India</option>
+                <option>HDFC Bank</option>
+                <option>ICICI Bank</option>
+                <option>Axis Bank</option>
+                <option>Kotak Mahindra Bank</option>
+                <option>IndusInd Bank</option>
+                <option>Yes Bank</option>
+                <option>Bank of Baroda</option>
+                <option>Punjab National Bank</option>
+                <option>Canara Bank</option>
+                <option>Union Bank of India</option>
+                <option>Bank of India</option>
+                <option>Indian Bank</option>
+                <option>Indian Overseas Bank</option>
+                <option>Federal Bank</option>
+                <option>IDFC FIRST Bank</option>
+                <option>Bandhan Bank</option>
+                <option>RBL Bank</option>
+                <option>AU Small Finance Bank</option>
+                <option>UCO Bank</option>
+              </select>
+              <select name="provider" required defaultValue="" className="rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                <option value="" disabled>Select provider</option>
+                <option>Account Aggregator</option>
+                <option>Open Banking provider</option>
+                <option>Sandbox/demo provider</option>
+              </select>
+              <input name="providerConnectionId" required placeholder="Provider connection ID" className="rounded-lg border border-input bg-background px-3 py-2 text-sm" />
+              <Button type="submit">Record consent</Button>
+            </form>
+            <p className="text-xs text-muted-foreground">
+              The connection ID must come from your provider&apos;s consent flow. Do not enter a username, password, PIN, or OTP.
+            </p>
+          </CardContent>
+        </Card>
 
         {/* SUMMARY CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

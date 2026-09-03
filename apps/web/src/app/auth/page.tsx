@@ -44,6 +44,12 @@ export default async function AuthPage({
           <form action={signInWithGoogle}>
             <Button type="submit" variant="outline" className="w-full">Continue with Google</Button>
           </form>
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-center text-sm">
+            <p className="font-semibold">Are you a Financial Wellbeing Officer?</p>
+            <Link href="/auth?next=/advisor" className="mt-1 inline-block text-primary hover:underline">
+              Use Officer Login
+            </Link>
+          </div>
           <div className="border-t border-border pt-6">
             <p className="mb-3 text-sm font-semibold">New to MoneyMitra?</p>
             <form action={signUp} className="space-y-3">
