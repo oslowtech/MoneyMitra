@@ -13,6 +13,7 @@ export default function MoneyPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [bankConnections, setBankConnections] = useState<BankConnection[]>([]);
+  const [bankMessage, setBankMessage] = useState<{ success: boolean; text: string } | null>(null);
 
   useEffect(() => {
     getUserTransactions().then(setTransactions).catch((error) => console.error(error));
@@ -95,8 +96,9 @@ export default function MoneyPage() {
                   <p className="text-xs text-muted-foreground">Provider: {connection.provider} · Read-only consent</p>
                 </div>
                 <form action={async (formData) => {
-                  await revokeBankConnection(formData);
-                  setBankConnections(await getBankConnections());
+                  const result = await revokeBankConnection(formData);
+                  setBankMessage({ success: result.success, text: result.message });
+                  if (result.success) setBankConnections(await getBankConnections());
                 }}>
                   <input type="hidden" name="id" value={connection.id} />
                   <Button type="submit" variant="outline" size="sm">Revoke access</Button>
@@ -104,8 +106,9 @@ export default function MoneyPage() {
               </div>
             ))}
             <form action={async (formData) => {
-              await connectBank(formData);
-              setBankConnections(await getBankConnections());
+              const result = await connectBank(formData);
+              setBankMessage({ success: result.success, text: result.message });
+              if (result.success) setBankConnections(await getBankConnections());
             }} className="grid gap-3 md:grid-cols-4">
               <select name="institutionName" required defaultValue="" className="rounded-lg border border-input bg-background px-3 py-2 text-sm">
                 <option value="" disabled>Select your bank</option>
@@ -140,6 +143,11 @@ export default function MoneyPage() {
               <input name="providerConnectionId" required placeholder="Provider connection ID" className="rounded-lg border border-input bg-background px-3 py-2 text-sm" />
               <Button type="submit">Record consent</Button>
             </form>
+            {bankMessage && (
+              <div className={`rounded-lg border p-3 text-sm ${bankMessage.success ? "border-primary/40 bg-primary/10 text-primary" : "border-red-500/40 bg-red-500/10 text-red-400"}`}>
+                {bankMessage.text}
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
               The connection ID must come from your provider&apos;s consent flow. Do not enter a username, password, PIN, or OTP.
             </p>
