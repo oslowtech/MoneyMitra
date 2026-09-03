@@ -53,6 +53,77 @@ MoneyMitra/
 
 ## Getting Started
 
+## Production Deployment
+
+### Deploy the Next.js app to Vercel
+
+1. Push this repository to GitHub and import it into Vercel.
+2. Set the Vercel **Root Directory** to `apps/web`.
+3. Keep the framework as **Next.js**. Vercel should detect:
+   - Install command: `npm install`
+   - Build command: `npm run build`
+   - Output: `.next`
+4. Add these Environment Variables in Vercel for **Production**, **Preview**, and **Development** as appropriate:
+
+   ```text
+   NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<Supabase publishable/anon key>
+   ML_SERVICE_URL=https://<your-deployed-ml-service>
+   ```
+
+   These two Supabase values are public browser configuration, not secrets, so the
+   `NEXT_PUBLIC_` prefix is required by Next.js. The app also accepts the equivalent
+   `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` names on the server. The app derives
+   its OAuth callback origin from the Vercel request URL, so no custom domain or site
+   URL variable is required. `ML_SERVICE_URL` is optional because the
+   application has fallback calculations, but a deployed ML service enables the full
+   analytics and distress-prediction models.
+5. Deploy and test `/auth`, `/onboarding`, `/money`, `/dashboard`, `/health`, and `/advisor`.
+
+### Deploy the Python ML service
+
+Deploy `services/ml` to a Python host such as Render, Railway, Fly.io, or a similar service.
+Use:
+
+```text
+Root directory: services/ml
+Build command: pip install -r requirements.txt
+Start command: uvicorn main:app --host 0.0.0.0 --port $PORT
+Health check: GET /
+```
+
+Copy the HTTPS service URL into Vercel as `ML_SERVICE_URL`, then redeploy the web app.
+
+### Connect a custom domain
+
+In Vercel, open the project **Settings → Domains**, add your domain, and copy the DNS
+records Vercel displays. Usually:
+
+- Root domain (`example.com`): use the A record shown by Vercel.
+- `www` subdomain: use the CNAME record shown by Vercel.
+
+Remove conflicting old A/CNAME records at your registrar. Keep email-related MX/TXT
+records unchanged. Wait for DNS propagation, then confirm that Vercel shows the domain
+as **Valid** and HTTPS is enabled.
+
+### Update Supabase URLs
+
+In Supabase **Authentication → URL Configuration**:
+
+- Site URL: `https://<your-domain>`
+- Additional Redirect URLs:
+  - `https://<your-domain>/auth/callback`
+  - `https://*.vercel.app/auth/callback` (use a specific preview URL instead if preferred)
+
+For Google authentication, the Google Cloud OAuth client must still contain:
+
+```text
+https://<project-ref>.supabase.co/auth/v1/callback
+```
+
+The browser returns to MoneyMitra through `/auth/callback`; do not replace the Supabase
+callback with the Vercel URL in Google Cloud.
+
 ### 1. Next.js Frontend
 
 ```bash
@@ -81,7 +152,9 @@ In your Supabase project SQL editor, run every migration file in order:
 2. `supabase/migrations/20260903000001_complete_domain_model.sql`
 3. `supabase/migrations/20260903000002_auth_profile_trigger.sql`
 4. `supabase/migrations/20260903000003_user_statements.sql`
-5. `supabase/seed.sql`
+5. `supabase/migrations/20260903000004_goal_rls.sql`
+6. `supabase/migrations/20260903000005_loan_emi_fields.sql`
+7. `supabase/seed.sql`
 
 Do not run only the latest migration: the `profiles` table is created by the core schema migration.
 

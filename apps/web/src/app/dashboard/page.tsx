@@ -1,23 +1,11 @@
 import { Navigation } from "@/components/Navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowDownIcon, ArrowUpIcon, AlertTriangleIcon, CheckCircle2Icon } from "lucide-react";
+import { AlertTriangleIcon, CheckCircle2Icon } from "lucide-react";
 import { fetchIncomeVolatility, fetchSafeToSpend } from "../actions";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
-
-// Mock Gig Worker Income Data
-const MOCK_INCOME_RECORDS = [
-  { amount: 2000, date: "2026-08-01", source: "Uber" },
-  { amount: 800, date: "2026-08-02", source: "Swiggy" },
-  { amount: 2500, date: "2026-08-03", source: "Uber" },
-  { amount: 500, date: "2026-08-05", source: "Swiggy" },
-  { amount: 1800, date: "2026-08-07", source: "Uber" },
-  { amount: 1200, date: "2026-08-10", source: "Swiggy" },
-  { amount: 3100, date: "2026-08-15", source: "Freelance" },
-  { amount: 1500, date: "2026-08-20", source: "Uber" },
-];
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -25,19 +13,42 @@ export default async function DashboardPage() {
   const { data: profile } = user
     ? await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
     : { data: null };
+  const { data: transactions } = await supabase
+    .from("transactions")
+    .select("transaction_date, source, amount, direction, description")
+    .order("transaction_date", { ascending: false })
+    .limit(200);
+  const { data: loans } = await supabase.from("loans").select("outstanding_principal, next_emi_amount");
+  const rows = transactions || [];
+  const incomeRecords = rows.filter((row) => row.direction === "credit").map((row) => ({
+    amount: Number(row.amount), date: row.transaction_date, source: row.source || "Other",
+  }));
+  const incomeTotal = incomeRecords.reduce((sum, row) => sum + row.amount, 0);
+  const expenseRows = rows.filter((row) => row.direction === "debit");
+  const expenseTotal = expenseRows.reduce((sum, row) => sum + Number(row.amount), 0);
+  const essentialExpenses = expenseRows.reduce((sum, row) =>
+    /rent|fuel|utility|electric|grocery|medical|emi|loan/i.test(`${row.description} ${row.source}`)
+      ? sum + Number(row.amount) : sum, 0);
+  const currentBalance = incomeTotal - expenseTotal;
+  const loanTotal = (loans || []).reduce((sum, loan) => sum + Number(loan.next_emi_amount || 0), 0);
+  const sourceTotals = incomeRecords.reduce<Record<string, number>>((totals, row) => {
+    totals[row.source] = (totals[row.source] || 0) + row.amount;
+    return totals;
+  }, {});
   const [mlResult, safeToSpend] = await Promise.all([
-    fetchIncomeVolatility(MOCK_INCOME_RECORDS),
+    fetchIncomeVolatility(incomeRecords),
     fetchSafeToSpend({
-      current_balance: 8000,
-      expected_income_min: 3500,
-      expected_income_max: 5200,
-      essential_expenses: 5000,
-      upcoming_debt_obligations: 3000,
+      current_balance: currentBalance,
+      expected_income_min: incomeTotal * 0.75,
+      expected_income_max: incomeTotal * 1.25,
+      essential_expenses: essentialExpenses,
+      upcoming_debt_obligations: loanTotal,
     }),
   ]);
   const cv = mlResult?.coefficient_of_variation ?? mlResult?.volatility ?? 0.45;
   const cvPercentage = (cv * 100).toFixed(1);
   const weeklySafeToSpend = safeToSpend?.safe_to_spend_weekly ?? 0;
+  const stabilityScore = mlResult?.income_stability_score ?? 50;
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -70,10 +81,10 @@ export default async function DashboardPage() {
             <CardContent>
               <div className="text-5xl font-black mb-4">₹{Math.round(weeklySafeToSpend).toLocaleString("en-IN")} <span className="text-xl text-muted-foreground font-normal">this week</span></div>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <div className="flex justify-between"><span>Current balance</span> <span className="text-foreground">₹8,000</span></div>
-                <div className="flex justify-between"><span>Expected income</span> <span className="text-green-500">+ ₹4,200</span></div>
-                <div className="flex justify-between"><span>Essential expenses</span> <span className="text-red-500">- ₹5,000</span></div>
-                <div className="flex justify-between"><span>Upcoming EMI</span> <span className="text-red-500">- ₹3,000</span></div>
+                <div className="flex justify-between"><span>Current balance</span> <span className="text-foreground">₹{Math.round(currentBalance).toLocaleString("en-IN")}</span></div>
+                <div className="flex justify-between"><span>Recorded income</span> <span className="text-green-500">+ ₹{Math.round(incomeTotal).toLocaleString("en-IN")}</span></div>
+                <div className="flex justify-between"><span>Essential expenses</span> <span className="text-red-500">- ₹{Math.round(essentialExpenses).toLocaleString("en-IN")}</span></div>
+                <div className="flex justify-between"><span>Upcoming EMI</span> <span className="text-red-500">- ₹{Math.round(loanTotal).toLocaleString("en-IN")}</span></div>
                 <div className="flex justify-between font-medium pt-2 border-t border-border"><span>Safety buffer</span> <span className="text-primary">- ₹{Math.round(safeToSpend?.safety_buffer_reserved ?? 0).toLocaleString("en-IN")}</span></div>
               </div>
             </CardContent>
@@ -86,13 +97,13 @@ export default async function DashboardPage() {
               <CardDescription>Your PS4 Health Score</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center justify-center py-6">
-              <div className="text-6xl font-black text-primary mb-2">64</div>
+              <div className="text-6xl font-black text-primary mb-2">{stabilityScore}</div>
               <div className="text-sm font-medium bg-yellow-500/10 text-yellow-500 px-3 py-1 rounded-full flex items-center space-x-1">
                 <AlertTriangleIcon className="h-4 w-4" />
                 <span>MODERATE</span>
               </div>
-              <p className="text-center text-xs text-muted-foreground mt-4">
-                Your score is down 8 points due to increased income volatility.
+               <p className="text-center text-xs text-muted-foreground mt-4">
+                Based on {rows.length} imported transaction{rows.length === 1 ? "" : "s"}.
               </p>
             </CardContent>
           </Card>
@@ -110,21 +121,13 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div>
-                  <div className="text-sm text-muted-foreground mb-1">Uber</div>
-                  <div className="text-2xl font-bold">₹7,800</div>
-                  <div className="text-xs text-red-500 flex items-center mt-1"><ArrowDownIcon className="h-3 w-3 mr-1"/> 14% vs avg</div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground mb-1">Swiggy</div>
-                  <div className="text-2xl font-bold">₹2,500</div>
-                  <div className="text-xs text-green-500 flex items-center mt-1"><ArrowUpIcon className="h-3 w-3 mr-1"/> 5% vs avg</div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground mb-1">Freelance</div>
-                  <div className="text-2xl font-bold">₹3,100</div>
-                  <div className="text-xs text-muted-foreground flex items-center mt-1">Stable</div>
-                </div>
+                {Object.entries(sourceTotals).slice(0, 3).map(([source, total]) => (
+                  <div key={source}>
+                    <div className="text-sm text-muted-foreground mb-1">{source}</div>
+                    <div className="text-2xl font-bold">₹{Math.round(total).toLocaleString("en-IN")}</div>
+                    <div className="text-xs text-muted-foreground mt-1">{(total / (incomeTotal || 1) * 100).toFixed(0)}% of recorded income</div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>

@@ -1,7 +1,8 @@
 import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowDownIcon, ArrowUpIcon, AlertTriangleIcon, InfoIcon, TrendingDownIcon } from "lucide-react";
-import { fetchDistressPrediction } from "../actions";
+import { AlertTriangleIcon, InfoIcon, TrendingDownIcon } from "lucide-react";
+import { fetchDistressPrediction, fetchIncomeVolatility } from "../actions";
+import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -13,13 +14,28 @@ interface RiskFactor {
 }
 
 export default async function HealthPage() {
-  const prediction = await fetchDistressPrediction({
-    income_trend: -0.18,
-    savings_buffer_days: 9,
-    debt_to_income: 0.31,
-    income_volatility: 0.45,
-    essential_expense_ratio: 0.65
-  });
+  const supabase = await createClient();
+  const { data: transactions } = await supabase.from("transactions").select("transaction_date, source, amount, direction, description").order("transaction_date", { ascending: false }).limit(200);
+  const { data: loans } = await supabase.from("loans").select("next_emi_amount");
+  const rows = transactions || [];
+  const income = rows.filter((row) => row.direction === "credit");
+  const expenses = rows.filter((row) => row.direction === "debit");
+  const incomeTotal = income.reduce((sum, row) => sum + Number(row.amount), 0);
+  const expenseTotal = expenses.reduce((sum, row) => sum + Number(row.amount), 0);
+  const essentialTotal = expenses.reduce((sum, row) => /rent|fuel|utility|electric|grocery|medical|emi|loan/i.test(`${row.description} ${row.source}`) ? sum + Number(row.amount) : sum, 0);
+  const incomeResult = await fetchIncomeVolatility(income.map((row) => ({ amount: Number(row.amount), date: row.transaction_date, source: row.source || "Other" })));
+  const volatility = Number(incomeResult?.coefficient_of_variation || 0);
+  const monthlyIncome = incomeTotal || 1;
+  const debt = (loans || []).reduce((sum, loan) => sum + Number(loan.next_emi_amount || 0), 0);
+  const bufferDays = essentialTotal > 0 ? Math.max(0, Math.round(Math.max(0, incomeTotal - expenseTotal) / (essentialTotal / 30))) : 0;
+  const midpoint = Math.ceil(income.length / 2);
+  const recentIncome = income.slice(0, midpoint).reduce((sum, row) => sum + Number(row.amount), 0);
+  const olderIncome = income.slice(midpoint).reduce((sum, row) => sum + Number(row.amount), 0);
+  const incomeTrend = olderIncome ? (recentIncome - olderIncome) / olderIncome : 0;
+  const prediction = await fetchDistressPrediction({ income_trend: incomeTrend, savings_buffer_days: bufferDays, debt_to_income: debt / monthlyIncome, income_volatility: volatility, essential_expense_ratio: essentialTotal / monthlyIncome });
+  const risk = prediction.horizon_predictions?.["90_day_risk"] ?? 0;
+  const score = rows.length ? Math.max(0, Math.min(100, Math.round(100 - risk * 70))) : 0;
+  const level = rows.length ? (score >= 70 ? "HEALTHY" : score >= 50 ? "MODERATE" : "AT RISK") : "NO DATA";
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -33,7 +49,7 @@ export default async function HealthPage() {
           </div>
           <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 px-4 py-2 rounded-full text-sm font-semibold flex items-center space-x-2">
             <AlertTriangleIcon className="h-4 w-4" />
-            <span>Overall Trajectory: Deteriorating (↓ 8 pts)</span>
+            <span>Overall Risk: {prediction.overall_risk_level}</span>
           </div>
         </header>
 
@@ -41,13 +57,13 @@ export default async function HealthPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="col-span-1 border-primary/40 bg-card/60 flex flex-col justify-center items-center p-6 text-center">
             <span className="text-sm font-semibold uppercase text-muted-foreground tracking-wider mb-2">Resilience Score</span>
-            <div className="text-7xl font-black text-primary mb-2">64<span className="text-2xl text-muted-foreground font-normal">/100</span></div>
+            <div className="text-7xl font-black text-primary mb-2">{score}<span className="text-2xl text-muted-foreground font-normal">/100</span></div>
             <div className="text-sm font-bold text-yellow-500 bg-yellow-500/10 px-3 py-1 rounded-full mb-4">
-              MODERATE RESILIENCE
+              {level} RESILIENCE
             </div>
             <p className="text-xs text-muted-foreground">
-              Biggest weakness: <strong>Emergency Buffer (9 days)</strong><br/>
-              Biggest strength: <strong>Stable Essential Expenses</strong>
+              Biggest weakness: <strong>{bufferDays} day buffer estimate</strong><br/>
+              Imported records: <strong>{rows.length}</strong>
             </p>
           </Card>
 
@@ -59,11 +75,11 @@ export default async function HealthPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {[
-                { label: "Income Stability", score: 48, status: "Critical Volatility", color: "bg-red-500" },
-                { label: "Cash Flow Cushion", score: 61, status: "Moderate", color: "bg-yellow-500" },
-                { label: "Emergency Savings", score: 35, status: "Low Buffer (9d)", color: "bg-red-500" },
-                { label: "Debt Pressure", score: 52, status: "Manageable EMI", color: "bg-yellow-500" },
-                { label: "Expense Flexibility", score: 67, status: "Healthy Baseline", color: "bg-primary" },
+                { label: "Income Stability", score: Math.max(0, 100 - Math.round(volatility * 60)), status: `${(volatility * 100).toFixed(1)}% volatility`, color: "bg-primary" },
+                { label: "Cash Flow Cushion", score: Math.max(0, Math.min(100, Math.round((incomeTotal - expenseTotal) / monthlyIncome * 100))), status: `${Math.round(incomeTotal - expenseTotal)} net`, color: "bg-yellow-500" },
+                { label: "Emergency Buffer", score: Math.min(100, bufferDays * 3), status: `${bufferDays} days`, color: "bg-yellow-500" },
+                { label: "Debt Pressure", score: Math.max(0, 100 - Math.round((debt / monthlyIncome) * 100)), status: `${Math.round(debt / monthlyIncome * 100)}% of income`, color: "bg-yellow-500" },
+                { label: "Expense Flexibility", score: Math.max(0, 100 - Math.round(expenseTotal / monthlyIncome * 100)), status: `${Math.round(expenseTotal / monthlyIncome * 100)}% outflow`, color: "bg-primary" },
               ].map((item) => (
                 <div key={item.label} className="space-y-1">
                   <div className="flex justify-between text-sm">
@@ -110,7 +126,7 @@ export default async function HealthPage() {
               <div className="text-sm">
                 <span className="font-bold text-foreground">Natural Language Explanation:</span>
                 <p className="text-muted-foreground mt-0.5">
-                  &quot;Your financial resilience score dropped 8 points because your income from Uber declined by 18% over the past 30 days while your recurring essential expenses remained constant, reducing your liquid emergency buffer to 9 days.&quot;
+                  Based on your imported records, your 90-day distress risk is {(risk * 100).toFixed(0)}%. Income volatility is {(volatility * 100).toFixed(1)}%, with an estimated {bufferDays}-day cash buffer.
                 </p>
               </div>
             </div>

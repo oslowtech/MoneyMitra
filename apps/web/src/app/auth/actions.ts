@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 
 export async function signIn(formData: FormData) {
@@ -34,9 +35,15 @@ export async function signUp(formData: FormData) {
 
 export async function signInWithGoogle() {
   const supabase = await createClient();
+  const requestHeaders = await headers();
+  const forwardedHost = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
+  const forwardedProto = requestHeaders.get("x-forwarded-proto") || "http";
+  const siteUrl = forwardedHost
+    ? `${forwardedProto}://${forwardedHost}`
+    : process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback` },
+    options: { redirectTo: `${siteUrl}/auth/callback` },
   });
   if (error || !data.url) {
     redirect(`/auth?error=${encodeURIComponent(error?.message || "Google sign-in is unavailable")}`);
