@@ -26,3 +26,9 @@ CREATE POLICY "Users can manage their own transactions"
 
 CREATE INDEX IF NOT EXISTS idx_statement_imports_user_date
   ON public.statement_imports(user_id, created_at DESC);
+
+ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view their own memberships" ON public.organization_members;
+CREATE POLICY "Users can view their own memberships"
+  ON public.organization_members FOR SELECT
+  USING (auth.uid() = user_id);

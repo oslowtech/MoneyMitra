@@ -2,6 +2,7 @@ import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, AlertTriangle, ShieldCheck, PhoneCall, ChevronRight, Filter } from "lucide-react";
+import { createClient } from "@/utils/supabase/server";
 
 interface CustomerCase {
   id: string;
@@ -23,7 +24,15 @@ const MONITORED_CUSTOMERS: CustomerCase[] = [
   { id: '5', name: 'Suresh Patel', employment_type: 'Self Employed', risk_level: 'MEDIUM', trend: '↓↓', buffer_days: 14, income_volatility: '30% CV', intervention_status: 'Auto Recommendation', primary_source: 'Retail Store' },
 ];
 
-export default function AdvisorPage() {
+export default async function AdvisorPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: membership } = user
+    ? await supabase.from("organization_members").select("role").eq("user_id", user.id).in("role", ["advisor", "admin"]).maybeSingle()
+    : { data: null };
+  if (!membership) {
+    return <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-8"><div className="max-w-md text-center space-y-4"><h1 className="text-2xl font-bold">Officer access required</h1><p className="text-muted-foreground">This portal is reserved for authorized Financial Wellbeing Officers and administrators.</p><a href="/dashboard" className="text-primary hover:underline">Return to your dashboard</a></div></main>;
+  }
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       <Navigation />

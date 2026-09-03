@@ -30,6 +30,7 @@ CREATE TABLE organization_members (
     UNIQUE(organization_id, user_id)
 );
 
+
 -- CUSTOMER FINANCIAL PROFILE (GIG FOCUS)
 CREATE TABLE financial_profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
