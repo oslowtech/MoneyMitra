@@ -38,7 +38,7 @@ export default function Home() {
         
         <div className="flex items-center space-x-4">
           <Link href="/onboarding" className={buttonVariants({ size: "lg", className: "rounded-full font-bold px-8 h-12 text-md" })}>Start Planning Now &rarr;</Link>
-          <Link href="/dashboard" className={buttonVariants({ size: "lg", variant: "outline", className: "rounded-full font-bold px-8 h-12 text-md bg-transparent border-border hover:bg-secondary" })}>See how it works</Link>
+          <Link href="/guide" className={buttonVariants({ size: "lg", variant: "outline", className: "rounded-full font-bold px-8 h-12 text-md bg-transparent border-border hover:bg-secondary" })}>See how it works</Link>
         </div>
       </main>
     </div>
