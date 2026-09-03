@@ -71,8 +71,8 @@ export default async function AdvisorPage() {
     <div className="flex min-h-screen bg-background text-foreground">
       <Navigation />
 
-      <main className="flex-1 p-8 max-w-6xl mx-auto space-y-8 overflow-y-auto">
-        <header className="flex justify-between items-center">
+      <main className="flex-1 min-w-0 p-4 pt-16 sm:p-8 sm:pt-8 max-w-6xl mx-auto space-y-6 sm:space-y-8 overflow-y-auto">
+        <header className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
           <div>
             <div className="flex items-center space-x-2">
               <h1 className="text-3xl font-bold tracking-tight">Financial Wellbeing Officer Portal</h1>

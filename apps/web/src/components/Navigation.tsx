@@ -12,9 +12,12 @@ import {
   SlidersHorizontal, 
   UserCheck,
   ShieldCheck,
-  UserPlus
-  , UserRound
+  UserPlus,
+  UserRound,
+  Menu,
+  X
 } from 'lucide-react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { signOut } from '@/app/auth/actions';
 
@@ -32,10 +35,27 @@ const navItems = [
 
 export function Navigation() {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
 
   return (
-    <aside className="w-64 border-r border-border bg-card/60 flex flex-col justify-between p-4 min-h-screen">
+    <>
+      <button
+        type="button"
+        aria-label="Open navigation"
+        onClick={() => setOpen(true)}
+        className="fixed left-4 top-4 z-40 rounded-lg border border-border bg-card p-2 text-foreground shadow-lg md:hidden"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+      {open && <button aria-label="Close navigation" onClick={() => setOpen(false)} className="fixed inset-0 z-40 bg-black/60 md:hidden" />}
+    <aside className={cn(
+      "fixed inset-y-0 left-0 z-50 w-72 border-r border-border bg-card p-4 flex flex-col justify-between transition-transform md:static md:z-auto md:min-h-screen md:w-64 md:translate-x-0",
+      open ? "translate-x-0" : "-translate-x-full"
+    )}>
       <div>
+        <button type="button" aria-label="Close navigation" onClick={() => setOpen(false)} className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground hover:text-foreground md:hidden">
+          <X className="h-5 w-5" />
+        </button>
         {/* Brand Header */}
         <Link href="/dashboard" className="flex items-center space-x-2 px-3 py-4 mb-6">
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-black text-lg">
@@ -56,6 +76,7 @@ export function Navigation() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setOpen(false)}
                 className={cn(
                   "flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                   isActive
@@ -75,6 +96,7 @@ export function Navigation() {
       <div className="pt-4 border-t border-border space-y-2">
         <Link
           href="/profile"
+          onClick={() => setOpen(false)}
           className="flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
         >
           <UserPlus className="h-4 w-4" />
@@ -94,5 +116,6 @@ export function Navigation() {
         </form>
       </div>
     </aside>
+    </>
   );
 }

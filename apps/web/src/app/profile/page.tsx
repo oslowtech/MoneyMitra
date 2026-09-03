@@ -29,9 +29,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       <Navigation />
-      <main className="flex-1 p-8 max-w-3xl mx-auto space-y-8">
+      <main className="flex-1 min-w-0 p-4 pt-16 sm:p-8 sm:pt-8 max-w-3xl mx-auto space-y-6 sm:space-y-8">
         <header>
-          <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Profile</h1>
           <p className="text-muted-foreground">Your Money Mantra setup is saved here and can be changed anytime.</p>
         </header>
         <Card className="border-border bg-card/60">

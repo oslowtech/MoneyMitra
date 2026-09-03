@@ -65,13 +65,13 @@ export default async function DashboardPage() {
     <div className="flex min-h-screen bg-background text-foreground">
       <Navigation />
 
-      <main className="flex-1 p-8 max-w-6xl mx-auto space-y-8 overflow-y-auto">
-        <header className="flex justify-between items-center">
+      <main className="flex-1 min-w-0 p-4 pt-16 sm:p-8 sm:pt-8 max-w-6xl mx-auto space-y-6 sm:space-y-8 overflow-y-auto">
+        <header className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground">Good afternoon, {profile?.full_name || user?.email?.split("@")[0] || "there"}. Here is your financial trajectory.</p>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center justify-between gap-3 sm:justify-end">
             <a href="/money" className={buttonVariants({ variant: "outline", className: "rounded-full" })}>Add Income</a>
             <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
               {(profile?.full_name || user?.email || "U").charAt(0).toUpperCase()}
