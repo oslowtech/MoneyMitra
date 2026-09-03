@@ -43,7 +43,7 @@ export async function connectBank(formData: FormData): Promise<BankActionResult>
     .select("id")
     .eq("name", institutionName)
     .eq("type", "bank")
-    .order("status", { ascending: false })
+    .eq("status", "active")
     .order("created_at", { ascending: true })
     .limit(1);
   if (organizationError) return { success: false, message: `Unable to find bank organization: ${organizationError.message}` };

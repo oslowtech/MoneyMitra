@@ -2,11 +2,29 @@ ALTER TABLE public.bank_connections
   ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES public.organizations(id) ON DELETE SET NULL;
 
 UPDATE public.bank_connections AS connection
-SET organization_id = organization.id
-FROM public.organizations AS organization
-WHERE connection.organization_id IS NULL
-  AND organization.type = 'bank'
-  AND lower(trim(organization.name)) = lower(trim(connection.institution_name));
+SET organization_id = (
+  SELECT organization.id
+  FROM public.organizations AS organization
+  WHERE organization.type = 'bank'
+    AND organization.status = 'active'
+    AND lower(trim(organization.name)) = lower(trim(connection.institution_name))
+  ORDER BY
+    EXISTS (
+      SELECT 1
+      FROM public.organization_members AS staff
+      WHERE staff.organization_id = organization.id
+        AND staff.role IN ('advisor', 'admin')
+    ) DESC,
+    organization.created_at ASC,
+    organization.id ASC
+  LIMIT 1
+)
+WHERE lower(trim(connection.institution_name)) IN (
+  SELECT lower(trim(organization.name))
+  FROM public.organizations AS organization
+  WHERE organization.type = 'bank'
+    AND organization.status = 'active'
+);
 
 INSERT INTO public.organization_members (organization_id, user_id, role)
 SELECT DISTINCT connection.organization_id, connection.user_id, 'customer'
