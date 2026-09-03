@@ -25,11 +25,18 @@ export default async function AdvisorPage() {
   if (!membership) {
     return <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-8"><div className="max-w-md text-center space-y-4"><h1 className="text-2xl font-bold">Officer access required</h1><p className="text-muted-foreground">Your account is signed in, but it is not assigned to a bank organization as an advisor or administrator.</p><p className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-500">Ask your bank administrator to add your user ID to <code>organization_members</code> with role <code>advisor</code> or <code>admin</code>.</p><a href="/auth?next=/advisor" className="text-primary hover:underline">Return to Officer Login</a></div></main>;
   }
+  const { data: connections, error: connectionsError } = await supabase
+    .from("bank_connections")
+    .select("user_id")
+    .eq("organization_id", membership.organization_id)
+    .eq("status", "active");
+  const consentedIds = (connections || []).map((connection) => connection.user_id);
   const { data: customerMemberships, error: customerError } = await supabase
     .from("organization_members")
     .select("user_id")
     .eq("organization_id", membership.organization_id)
-    .eq("role", "customer");
+    .eq("role", "customer")
+    .in("user_id", consentedIds.length ? consentedIds : ["00000000-0000-0000-0000-000000000000"]);
   const customerIds = (customerMemberships || []).map((customer) => customer.user_id);
   const [profilesResult, financialProfilesResult] = await Promise.all([
     supabase.from("profiles").select("id, full_name").in("id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]),
@@ -37,8 +44,7 @@ export default async function AdvisorPage() {
   ]);
   const { data: profiles, error: profilesError } = profilesResult;
   const { data: financialProfiles, error: financialProfilesError } = financialProfilesResult;
-  const { data: connections, error: connectionsError } = await supabase.from("bank_connections").select("user_id").eq("organization_id", membership.organization_id).in("user_id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]).eq("status", "active");
-  const consented = new Set((connections || []).map((connection) => connection.user_id));
+  const consented = new Set(consentedIds);
   const { data: transactions, error: transactionsError } = await supabase.from("transactions").select("user_id, amount, direction, description, source").in("user_id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]);
   const cases: CustomerCase[] = (customerMemberships || []).filter((customer) => consented.has(customer.user_id)).map((customer) => {
     const rows = (transactions || []).filter((transaction) => transaction.user_id === customer.user_id);
