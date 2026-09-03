@@ -14,6 +14,18 @@ export async function signIn(formData: FormData) {
   if (error) redirect(`/auth?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/", "layout");
   const next = String(formData.get("next") ?? "/dashboard");
+  if (next === "/advisor") {
+    const { data: officerMembership } = await supabase
+      .from("organization_members")
+      .select("role")
+      .eq("user_id", (await supabase.auth.getUser()).data.user?.id || "")
+      .in("role", ["advisor", "admin"])
+      .maybeSingle();
+    if (!officerMembership) {
+      await supabase.auth.signOut();
+      redirect("/auth?next=/advisor&error=This account is not registered as a bank officer. Ask your bank administrator to assign the advisor or admin role.");
+    }
+  }
   redirect(next.startsWith("/") ? next : "/dashboard");
 }
 

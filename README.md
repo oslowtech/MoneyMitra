@@ -123,6 +123,11 @@ INSERT INTO public.organization_members (organization_id, user_id, role)
 VALUES ('<bank-organization-id>', '<officer-auth-user-id>', 'advisor');
 ```
 
+The officer must then open `/auth?next=/advisor` and use the email/password or Google
+account that was assigned this role. The **Officer Login** link is only a destination
+selector; it does not create an officer account or grant permissions. If the account
+has no matching membership, login returns a clear authorization error.
+
 In Supabase **Authentication → URL Configuration**:
 
 - Site URL: `https://<your-domain>`

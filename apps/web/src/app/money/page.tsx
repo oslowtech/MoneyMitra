@@ -109,6 +109,7 @@ export default function MoneyPage() {
             }} className="grid gap-3 md:grid-cols-4">
               <select name="institutionName" required defaultValue="" className="rounded-lg border border-input bg-background px-3 py-2 text-sm">
                 <option value="" disabled>Select your bank</option>
+                <option>Eniac Bank</option>
                 <option>State Bank of India</option>
                 <option>HDFC Bank</option>
                 <option>ICICI Bank</option>
