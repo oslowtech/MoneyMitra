@@ -1,55 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UploadCloud, CheckCircle, FileText, ArrowUpRight, ArrowDownLeft, ShieldCheck } from "lucide-react";
-
-interface ParsedTransaction {
-  id: string;
-  date: string;
-  source: string;
-  category: string;
-  amount: number;
-  direction: 'credit' | 'debit';
-  is_essential: boolean;
-}
-
-const INITIAL_TRANSACTIONS: ParsedTransaction[] = [
-  { id: '1', date: '2026-08-28', source: 'Uber Payout', category: 'Gig Income', amount: 3450, direction: 'credit', is_essential: false },
-  { id: '2', date: '2026-08-27', source: 'Swiggy Pay', category: 'Gig Income', amount: 1200, direction: 'credit', is_essential: false },
-  { id: '3', date: '2026-08-25', source: 'Indian Oil Petrol', category: 'Fuel', amount: 450, direction: 'debit', is_essential: true },
-  { id: '4', date: '2026-08-24', source: 'Airtel Broadband', category: 'Utilities', amount: 799, direction: 'debit', is_essential: true },
-  { id: '5', date: '2026-08-22', source: 'Zomato Delivery', category: 'Gig Income', amount: 1850, direction: 'credit', is_essential: false },
-  { id: '6', date: '2026-08-20', source: 'House Rent', category: 'Housing', amount: 12000, direction: 'debit', is_essential: true },
-];
+import { getUserTransactions, importStatement, type UserTransaction } from "./actions";
 
 export default function MoneyPage() {
-  const [transactions, setTransactions] = useState<ParsedTransaction[]>(INITIAL_TRANSACTIONS);
+  const [transactions, setTransactions] = useState<UserTransaction[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
-  const handleSimulatedCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    getUserTransactions().then(setTransactions).catch((error) => console.error(error));
+  }, []);
+
+  const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     setIsUploading(true);
-    
-    // Simulate statement parsing and canonical normalization pipeline (Section 67-70)
-    setTimeout(() => {
-      const newImportedTx: ParsedTransaction = {
-        id: Date.now().toString(),
-        date: new Date().toISOString().split('T')[0],
-        source: 'Swiggy Statement Import',
-        category: 'Gig Income',
-        amount: 2800,
-        direction: 'credit',
-        is_essential: false
-      };
-      setTransactions(prev => [newImportedTx, ...prev]);
+    try {
+      const file = e.target.files[0];
+      const rows = (await file.text()).split(/\r?\n/).filter(Boolean);
+      const imported = rows.slice(1).map((row) => row.split(",")).map(([date, source, amount, direction, category]) => ({
+        date: date?.trim(),
+        source: source?.trim() || "Imported statement",
+        amount: Math.abs(Number(amount?.replace(/[₹,\s]/g, ""))),
+        direction: direction?.trim().toLowerCase() === "debit" ? "debit" as const : "credit" as const,
+        category: category?.trim() || "Uncategorized",
+      })).filter((tx) => /^\d{4}-\d{2}-\d{2}$/.test(tx.date) && Number.isFinite(tx.amount) && tx.amount > 0);
+      await importStatement({ fileName: file.name, transactions: imported });
+      setTransactions(await getUserTransactions());
       setIsUploading(false);
       setUploadSuccess(true);
       setTimeout(() => setUploadSuccess(false), 4000);
-    }, 1500);
+    } catch (error) {
+      console.error(error);
+      setIsUploading(false);
+    } finally {
+      e.target.value = "";
+    }
   };
 
   const totalIncome = transactions.filter(t => t.direction === 'credit').reduce((a, b) => a + b.amount, 0);
@@ -70,7 +60,7 @@ export default function MoneyPage() {
             <input 
               type="file" 
               accept=".csv,.txt" 
-              onChange={handleSimulatedCsvUpload}
+              onChange={handleCsvUpload}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
             <Button className="rounded-full font-bold px-6 space-x-2">

@@ -22,7 +22,6 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
   const pathname = request.nextUrl.pathname;
-  const isAuthRoute = pathname.startsWith("/auth");
   const isProtectedRoute =
     pathname === "/onboarding" ||
     ["/dashboard", "/health", "/money", "/planning", "/debt", "/insights", "/simulator", "/advisor"]
@@ -33,10 +32,6 @@ export async function updateSession(request: NextRequest) {
     url.pathname = "/auth";
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
-  }
-
-  if (user && isAuthRoute) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return response;

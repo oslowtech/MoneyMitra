@@ -15,8 +15,8 @@ export default function Home() {
           <Link href="/advisor" className="hover:text-primary transition-colors">Company</Link>
         </nav>
         <div className="flex items-center space-x-4">
-          <Link href="/dashboard" className="text-sm font-medium hover:text-primary transition-colors">Log in</Link>
-          <Link href="/onboarding" className={buttonVariants({ className: "rounded-full font-bold px-6" })}>Sign up free</Link>
+          <Link href="/auth" className="text-sm font-medium hover:text-primary transition-colors">Log in</Link>
+          <Link href="/auth" className={buttonVariants({ className: "rounded-full font-bold px-6" })}>Sign up free</Link>
         </div>
       </header>
 

@@ -1,21 +1,18 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, ArrowRight, ArrowLeft, ShieldCheck, Sparkles, UploadCloud } from "lucide-react";
 import { saveOnboarding } from "../auth/actions";
 
-export default function OnboardingPage() {
+function OnboardingForm() {
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<number>(1);
   const [incomeType, setIncomeType] = useState<string>('gig');
   const [frequency, setFrequency] = useState<string>('irregular');
   const [goal, setGoal] = useState<string>('buffer');
-
-  const handleComplete = async () => {
-    await saveOnboarding({ incomeType, frequency, goal });
-  };
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col justify-center items-center p-6">
@@ -54,6 +51,12 @@ export default function OnboardingPage() {
         </CardHeader>
 
         <CardContent className="space-y-6 pt-2">
+          {searchParams.get("error") && (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+              Setup could not be saved: {searchParams.get("error")}
+              <p className="mt-1 text-xs">Apply the Supabase migrations in the project README, then try again.</p>
+            </div>
+          )}
           {/* STEP 1: INCOME TYPE */}
           {step === 1 && (
             <div className="space-y-3">
@@ -177,14 +180,27 @@ export default function OnboardingPage() {
                 <ArrowRight className="h-4 w-4" />
               </Button>
             ) : (
-              <Button onClick={handleComplete} className="rounded-full font-bold px-8 space-x-2 bg-primary text-primary-foreground hover:bg-primary/90">
-                <span>Launch MoneyMitra</span>
-                <Sparkles className="h-4 w-4" />
-              </Button>
+              <form action={saveOnboarding}>
+                <input type="hidden" name="incomeType" value={incomeType} />
+                <input type="hidden" name="frequency" value={frequency} />
+                <input type="hidden" name="goal" value={goal} />
+                <Button type="submit" className="rounded-full font-bold px-8 space-x-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                  <span>Launch MoneyMitra</span>
+                  <Sparkles className="h-4 w-4" />
+                </Button>
+              </form>
             )}
           </div>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={null}>
+      <OnboardingForm />
+    </Suspense>
   );
 }

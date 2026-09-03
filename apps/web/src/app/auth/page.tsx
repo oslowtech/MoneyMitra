@@ -1,14 +1,17 @@
 import Link from "next/link";
-import { signIn, signUp } from "./actions";
+import { signIn, signInWithGoogle, signOut, signUp } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { createClient } from "@/utils/supabase/server";
 
 export default async function AuthPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; next?: string }>;
 }) {
   const params = await searchParams;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   return (
     <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
@@ -23,10 +26,23 @@ export default async function AuthPage({
         <CardContent className="space-y-6">
           {params.error && <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{params.error}</p>}
           {params.message && <p className="rounded-lg bg-primary/10 p-3 text-sm text-primary">{params.message}</p>}
+          {user && (
+            <div className="rounded-lg border border-border bg-secondary/40 p-3 text-sm">
+              <p>Currently signed in as <strong>{user.email}</strong>.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Sign in below to switch accounts.</p>
+              <form action={signOut} className="mt-3">
+                <Button type="submit" variant="outline" size="sm">Sign out current account</Button>
+              </form>
+            </div>
+          )}
           <form action={signIn} className="space-y-3">
+            <input type="hidden" name="next" value={params.next ?? "/dashboard"} />
             <input name="email" type="email" required placeholder="Email" className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
             <input name="password" type="password" required minLength={6} placeholder="Password" className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
             <Button type="submit" className="w-full">Sign in</Button>
+          </form>
+          <form action={signInWithGoogle}>
+            <Button type="submit" variant="outline" className="w-full">Continue with Google</Button>
           </form>
           <div className="border-t border-border pt-6">
             <p className="mb-3 text-sm font-semibold">New to MoneyMitra?</p>

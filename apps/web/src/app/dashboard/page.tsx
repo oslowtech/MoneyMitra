@@ -3,6 +3,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowDownIcon, ArrowUpIcon, AlertTriangleIcon, CheckCircle2Icon } from "lucide-react";
 import { fetchIncomeVolatility, fetchSafeToSpend } from "../actions";
+import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,11 @@ const MOCK_INCOME_RECORDS = [
 ];
 
 export default async function DashboardPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: profile } = user
+    ? await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
+    : { data: null };
   const [mlResult, safeToSpend] = await Promise.all([
     fetchIncomeVolatility(MOCK_INCOME_RECORDS),
     fetchSafeToSpend({
@@ -41,11 +47,13 @@ export default async function DashboardPage() {
         <header className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground">Good afternoon, Ravi. Here is your financial trajectory.</p>
+            <p className="text-muted-foreground">Good afternoon, {profile?.full_name || user?.email?.split("@")[0] || "there"}. Here is your financial trajectory.</p>
           </div>
           <div className="flex items-center space-x-4">
             <a href="/money" className={buttonVariants({ variant: "outline", className: "rounded-full" })}>Add Income</a>
-            <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">R</div>
+            <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+              {(profile?.full_name || user?.email || "U").charAt(0).toUpperCase()}
+            </div>
           </div>
         </header>
 

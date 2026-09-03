@@ -76,10 +76,14 @@ uvicorn main:app --reload
 
 ### 3. Apply Supabase Database Schema
 
-In your Supabase project SQL editor, run both migration files in order:
+In your Supabase project SQL editor, run every migration file in order:
 1. `supabase/migrations/20260903000000_core_schema.sql`
 2. `supabase/migrations/20260903000001_complete_domain_model.sql`
-3. `supabase/seed.sql`
+3. `supabase/migrations/20260903000002_auth_profile_trigger.sql`
+4. `supabase/migrations/20260903000003_user_statements.sql`
+5. `supabase/seed.sql`
+
+Do not run only the latest migration: the `profiles` table is created by the core schema migration.
 
 ## Application Routes
 

@@ -190,6 +190,19 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE simulations ENABLE ROW LEVEL SECURITY;
 
 -- RLS POLICIES FOR CUSTOMERS
+DROP POLICY IF EXISTS "Users can access own loans" ON loans;
+DROP POLICY IF EXISTS "Users can access own loan payments" ON loan_payments;
+DROP POLICY IF EXISTS "Users can access own credit accounts" ON credit_accounts;
+DROP POLICY IF EXISTS "Users can access own recurring obligations" ON recurring_obligations;
+DROP POLICY IF EXISTS "Users can access own savings goals" ON savings_goals;
+DROP POLICY IF EXISTS "Users can access own financial goals" ON financial_goals;
+DROP POLICY IF EXISTS "Users can access own health snapshots" ON financial_health_snapshots;
+DROP POLICY IF EXISTS "Users can access own risk factors" ON risk_factors;
+DROP POLICY IF EXISTS "Users can access own recommendation actions" ON recommendation_actions;
+DROP POLICY IF EXISTS "Users can access own interventions" ON interventions;
+DROP POLICY IF EXISTS "Users can access own notifications" ON notifications;
+DROP POLICY IF EXISTS "Users can access own simulations" ON simulations;
+
 CREATE POLICY "Users can access own loans" ON loans FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users can access own loan payments" ON loan_payments FOR ALL USING (
     EXISTS (SELECT 1 FROM loans WHERE loans.id = loan_payments.loan_id AND loans.user_id = auth.uid())
