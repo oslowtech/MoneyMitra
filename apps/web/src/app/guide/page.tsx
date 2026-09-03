@@ -53,11 +53,11 @@ export default function GuidePage() {
           </div>
           <p className="mt-2 text-muted-foreground">A quick guide to using MoneyMitra safely and getting the most from your financial insights.</p>
         </header>
-        <div className="grid gap-4 md:grid-cols-2">
-          {sections.map((section) => {
+        <div id="features" className="grid gap-4 md:grid-cols-2">
+          {sections.map((section, index) => {
             const Icon = section.icon;
             return (
-              <Card key={section.title} className="border-border bg-card/60">
+              <Card key={section.title} id={index === 4 ? "ps4-engine" : undefined} className="border-border bg-card/60">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg"><Icon className="h-5 w-5 text-primary" />{section.title}</CardTitle>
                   <CardDescription>{section.description}</CardDescription>
@@ -71,7 +71,7 @@ export default function GuidePage() {
             );
           })}
         </div>
-        <Card className="border-primary/30 bg-primary/5">
+        <Card id="privacy" className="border-primary/30 bg-primary/5">
           <CardHeader><CardTitle>Privacy reminder</CardTitle></CardHeader>
           <CardContent className="text-sm text-muted-foreground">
             Only connect accounts through an approved read-only consent flow. Never share passwords, PINs, OTPs, or security answers with MoneyMitra or anyone claiming to represent it.
