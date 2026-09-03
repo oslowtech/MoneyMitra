@@ -1,6 +1,20 @@
 ALTER TABLE public.bank_connections
   ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES public.organizations(id) ON DELETE SET NULL;
 
+UPDATE public.bank_connections AS connection
+SET organization_id = organization.id
+FROM public.organizations AS organization
+WHERE connection.organization_id IS NULL
+  AND organization.type = 'bank'
+  AND lower(trim(organization.name)) = lower(trim(connection.institution_name));
+
+INSERT INTO public.organization_members (organization_id, user_id, role)
+SELECT DISTINCT connection.organization_id, connection.user_id, 'customer'
+FROM public.bank_connections AS connection
+WHERE connection.organization_id IS NOT NULL
+  AND connection.status = 'active'
+ON CONFLICT (organization_id, user_id) DO NOTHING;
+
 CREATE INDEX IF NOT EXISTS idx_bank_connections_org_status
   ON public.bank_connections(organization_id, status);
 

@@ -31,13 +31,15 @@ export default async function AdvisorPage() {
     .eq("organization_id", membership.organization_id)
     .eq("role", "customer");
   const customerIds = (customerMemberships || []).map((customer) => customer.user_id);
-  const [{ data: profiles }, { data: financialProfiles }] = await Promise.all([
+  const [profilesResult, financialProfilesResult] = await Promise.all([
     supabase.from("profiles").select("id, full_name").in("id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]),
     supabase.from("financial_profiles").select("user_id, employment_type").in("user_id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]),
   ]);
-  const { data: connections } = await supabase.from("bank_connections").select("user_id").eq("organization_id", membership.organization_id).in("user_id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]).eq("status", "active");
+  const { data: profiles, error: profilesError } = profilesResult;
+  const { data: financialProfiles, error: financialProfilesError } = financialProfilesResult;
+  const { data: connections, error: connectionsError } = await supabase.from("bank_connections").select("user_id").eq("organization_id", membership.organization_id).in("user_id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]).eq("status", "active");
   const consented = new Set((connections || []).map((connection) => connection.user_id));
-  const { data: transactions } = await supabase.from("transactions").select("user_id, amount, direction, description, source").in("user_id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]);
+  const { data: transactions, error: transactionsError } = await supabase.from("transactions").select("user_id, amount, direction, description, source").in("user_id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]);
   const cases: CustomerCase[] = (customerMemberships || []).filter((customer) => consented.has(customer.user_id)).map((customer) => {
     const rows = (transactions || []).filter((transaction) => transaction.user_id === customer.user_id);
     const profile = (profiles || []).find((item) => item.id === customer.user_id);
@@ -51,8 +53,9 @@ export default async function AdvisorPage() {
   const highRisk = cases.filter((customer) => customer.risk_level === "HIGH").length;
   const mediumRisk = cases.filter((customer) => customer.risk_level === "MEDIUM").length;
   const stable = cases.length - highRisk - mediumRisk;
-  const portfolioMessage = customerError
-    ? `Unable to load the bank portfolio: ${customerError.message}`
+  const portfolioError = customerError || profilesError || financialProfilesError || connectionsError || transactionsError;
+  const portfolioMessage = portfolioError
+    ? `Unable to load the bank portfolio: ${portfolioError.message}`
     : cases.length
       ? null
       : "No customer details are available yet. Add the customer to this bank organization, record active consent, and refresh.";
