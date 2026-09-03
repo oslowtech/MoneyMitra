@@ -25,15 +25,23 @@ export default async function AdvisorPage() {
   if (!membership) {
     return <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-8"><div className="max-w-md text-center space-y-4"><h1 className="text-2xl font-bold">Officer access required</h1><p className="text-muted-foreground">Your account is signed in, but it is not assigned to a bank organization as an advisor or administrator.</p><p className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-500">Ask your bank administrator to add your user ID to <code>organization_members</code> with role <code>advisor</code> or <code>admin</code>.</p><a href="/auth?next=/advisor" className="text-primary hover:underline">Return to Officer Login</a></div></main>;
   }
-  const { data: customers, error: customerError } = await supabase.from("organization_members").select("user_id, profiles(id, full_name), financial_profiles(employment_type)").eq("organization_id", membership.organization_id).eq("role", "customer");
-  const customerIds = (customers || []).map((customer) => customer.user_id);
+  const { data: customerMemberships, error: customerError } = await supabase
+    .from("organization_members")
+    .select("user_id")
+    .eq("organization_id", membership.organization_id)
+    .eq("role", "customer");
+  const customerIds = (customerMemberships || []).map((customer) => customer.user_id);
+  const [{ data: profiles }, { data: financialProfiles }] = await Promise.all([
+    supabase.from("profiles").select("id, full_name").in("id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]),
+    supabase.from("financial_profiles").select("user_id, employment_type").in("user_id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]),
+  ]);
   const { data: connections } = await supabase.from("bank_connections").select("user_id").eq("organization_id", membership.organization_id).in("user_id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]).eq("status", "active");
   const consented = new Set((connections || []).map((connection) => connection.user_id));
   const { data: transactions } = await supabase.from("transactions").select("user_id, amount, direction, description, source").in("user_id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]);
-  const cases: CustomerCase[] = (customers || []).filter((customer) => consented.has(customer.user_id)).map((customer) => {
+  const cases: CustomerCase[] = (customerMemberships || []).filter((customer) => consented.has(customer.user_id)).map((customer) => {
     const rows = (transactions || []).filter((transaction) => transaction.user_id === customer.user_id);
-    const profile = Array.isArray(customer.profiles) ? customer.profiles[0] : customer.profiles;
-    const financialProfile = Array.isArray(customer.financial_profiles) ? customer.financial_profiles[0] : customer.financial_profiles;
+    const profile = (profiles || []).find((item) => item.id === customer.user_id);
+    const financialProfile = (financialProfiles || []).find((item) => item.user_id === customer.user_id);
     const income = rows.filter((row) => row.direction === "credit").reduce((sum, row) => sum + Number(row.amount), 0);
     const expenses = rows.filter((row) => row.direction === "debit").reduce((sum, row) => sum + Number(row.amount), 0);
     const ratio = income ? expenses / income : 1;
