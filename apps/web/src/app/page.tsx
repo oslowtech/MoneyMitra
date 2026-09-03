@@ -10,9 +10,9 @@ export default function Home() {
         </div>
         <nav className="hidden md:flex space-x-6 text-sm text-muted-foreground font-medium">
           <Link href="/" className="hover:text-primary transition-colors">Home</Link>
-          <Link href="/guide#features" className="hover:text-primary transition-colors">Features</Link>
-          <Link href="/guide#ps4-engine" className="hover:text-primary transition-colors">PS4 Engine</Link>
-          <Link href="/guide#privacy" className="hover:text-primary transition-colors">Company</Link>
+          <Link href="/features" className="hover:text-primary transition-colors">Features</Link>
+          <Link href="/ps4-engine" className="hover:text-primary transition-colors">PS4 Engine</Link>
+          <Link href="/company" className="hover:text-primary transition-colors">Company</Link>
         </nav>
         <div className="flex items-center space-x-4">
           <Link href="/auth" className="text-sm font-medium hover:text-primary transition-colors">Log in</Link>
