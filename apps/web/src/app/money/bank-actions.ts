@@ -33,8 +33,18 @@ export async function connectBank(formData: FormData) {
     throw new Error("Bank, provider, and provider connection reference are required.");
   }
 
+  const { data: organization, error: organizationError } = await supabase
+    .from("organizations")
+    .select("id")
+    .eq("name", institutionName)
+    .eq("type", "bank")
+    .maybeSingle();
+  if (organizationError) throw new Error(`Unable to find bank organization: ${organizationError.message}`);
+  if (!organization) throw new Error("This bank is not configured yet. Ask an administrator to create its bank organization first.");
+
   const { error } = await supabase.from("bank_connections").upsert({
     user_id: user.id,
+    organization_id: organization.id,
     institution_name: institutionName,
     provider,
     provider_connection_id: providerConnectionId,
@@ -43,6 +53,12 @@ export async function connectBank(formData: FormData) {
     consented_at: new Date().toISOString(),
   }, { onConflict: "user_id,provider,provider_connection_id" });
   if (error) throw new Error(`Unable to save bank consent: ${error.message}`);
+  const { error: membershipError } = await supabase.from("organization_members").upsert({
+    organization_id: organization.id,
+    user_id: user.id,
+    role: "customer",
+  }, { onConflict: "organization_id,user_id" });
+  if (membershipError) throw new Error(`Unable to affiliate your account with this bank: ${membershipError.message}`);
   revalidatePath("/money");
 }
 

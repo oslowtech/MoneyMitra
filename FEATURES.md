@@ -356,7 +356,8 @@ Run migrations in order in the Supabase SQL Editor:
 10. `20260904000001_impact_evidence.sql`
 11. `20260904000002_single_use_evidence.sql`
 12. `20260904000003_blood_donation_activity.sql`
-13. `seed.sql`
+13. `20260904000004_bank_connection_organization.sql`
+14. `seed.sql`
 
 The migrations are designed to be safely rerun where possible.
 
