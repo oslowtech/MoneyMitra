@@ -14,6 +14,7 @@ interface CustomerCase {
   income_volatility: string;
   intervention_status: string;
   primary_source: string;
+  distress_reasons: string[];
 }
 
 export default async function AdvisorPage() {
@@ -46,8 +47,16 @@ export default async function AdvisorPage() {
     const income = rows.filter((row) => row.direction === "credit").reduce((sum, row) => sum + Number(row.amount), 0);
     const expenses = rows.filter((row) => row.direction === "debit").reduce((sum, row) => sum + Number(row.amount), 0);
     const ratio = income ? expenses / income : 1;
-    const risk_level = !rows.length ? "LOW" : ratio > 0.9 ? "HIGH" : ratio > 0.7 ? "MEDIUM" : "LOW";
-    return { id: customerId, name: profile?.full_name || "Unnamed customer", employment_type: financialProfile?.employment_type || "Not provided", risk_level, trend: ratio > 0.9 ? "↓↓" : ratio > 0.7 ? "→" : "↑", buffer_days: Math.max(0, Math.round((income - expenses) / Math.max(1, expenses) * 30)), income_volatility: `${rows.length} records`, intervention_status: risk_level === "HIGH" ? "Review required" : "Monitored", primary_source: rows.find((row) => row.direction === "credit")?.source || "Not provided" };
+    const bufferDays = expenses > 0 ? Math.max(0, Math.round((income - expenses) / (expenses / 30))) : 0;
+    const distressReasons: string[] = [];
+    if (!rows.length) distressReasons.push("No transaction history available");
+    if (!income) distressReasons.push("No recorded income");
+    if (income && ratio > 0.9) distressReasons.push(`Expenses use ${Math.round(ratio * 100)}% of income`);
+    else if (income && ratio > 0.7) distressReasons.push(`High expense load at ${Math.round(ratio * 100)}% of income`);
+    if (income && income - expenses < 0) distressReasons.push("Negative net cash flow");
+    if (income && bufferDays <= 7) distressReasons.push(`Only ${bufferDays} days of estimated buffer`);
+    const risk_level = !rows.length || !income ? "LOW" : ratio > 0.9 || income - expenses < 0 ? "HIGH" : ratio > 0.7 || bufferDays <= 7 ? "MEDIUM" : "LOW";
+    return { id: customerId, name: profile?.full_name || "Unnamed customer", employment_type: financialProfile?.employment_type || "Not provided", risk_level, trend: ratio > 0.9 ? "↓↓" : ratio > 0.7 ? "→" : "↑", buffer_days: bufferDays, income_volatility: `${rows.length} records`, intervention_status: risk_level === "HIGH" ? "Review required" : risk_level === "MEDIUM" ? "Watch closely" : "Monitored", primary_source: rows.find((row) => row.direction === "credit")?.source || "Not provided", distress_reasons: distressReasons.length ? distressReasons : ["No material distress indicators detected"] };
   });
   const highRisk = cases.filter((customer) => customer.risk_level === "HIGH").length;
   const mediumRisk = cases.filter((customer) => customer.risk_level === "MEDIUM").length;
@@ -145,6 +154,7 @@ export default async function AdvisorPage() {
                     <th className="py-3 px-4">Distress Risk</th>
                     <th className="py-3 px-4">Trajectory Trend</th>
                     <th className="py-3 px-4">Buffer Days</th>
+                    <th className="py-3 px-4">Distress Review</th>
                     <th className="py-3 px-4">Intervention Status</th>
                     <th className="py-3 px-4 text-right">Action</th>
                   </tr>
@@ -172,6 +182,11 @@ export default async function AdvisorPage() {
                         {cust.trend.includes('↓') ? <span className="text-red-400">{cust.trend}</span> : <span className="text-primary">{cust.trend}</span>}
                       </td>
                       <td className="py-3.5 px-4 font-mono text-xs">{cust.buffer_days} days</td>
+                      <td className="py-3.5 px-4 text-xs">
+                        <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
+                          {cust.distress_reasons.map((reason) => <li key={reason}>{reason}</li>)}
+                        </ul>
+                      </td>
                       <td className="py-3.5 px-4 text-xs font-medium">{cust.intervention_status}</td>
                       <td className="py-3.5 px-4 text-right">
                         <Button size="sm" variant={cust.risk_level === 'HIGH' ? "default" : "outline"} className="rounded-full text-xs space-x-1">
