@@ -15,28 +15,52 @@ export function ImpactWallet({ rules }: { rules: Rule[] }) {
   useEffect(() => () => {
     if (scannerRef.current?.isScanning) scannerRef.current.stop().catch(() => undefined);
   }, []);
-  async function toggleScanner() {
-    if (scannerOpen) {
-      if (scannerRef.current?.isScanning) await scannerRef.current.stop();
-      scannerRef.current = null;
-      setScannerOpen(false);
-      return;
-    }
-    setScannerOpen(true);
+  useEffect(() => {
+    if (!scannerOpen) return;
+    let cancelled = false;
     const scanner = new Html5Qrcode("impact-qr-reader");
     scannerRef.current = scanner;
-    try {
-      await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 220, height: 220 } }, async (decodedText) => {
+    const config = { fps: 10, qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+        const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.7);
+        return { width: Math.max(160, Math.min(280, size)), height: Math.max(160, Math.min(280, size)) };
+      } };
+    const onScan = async (decodedText: string) => {
+        if (cancelled) return;
         setScannedEvidence(decodedText);
         setMessage("QR evidence scanned. Review it in the evidence field before submitting.");
-        await scanner.stop();
+        if (scanner.isScanning) await scanner.stop();
         scannerRef.current = null;
         setScannerOpen(false);
-      }, () => undefined);
-    } catch (error) {
-      setMessage(error instanceof Error ? `Camera unavailable: ${error.message}` : "Camera permission was denied.");
+      };
+    const onError = () => undefined;
+    const startScanner = async () => {
+      if (!window.isSecureContext) {
+        throw new Error("Camera access requires HTTPS. Open https://oslowtech.in, not http://oslowtech.in.");
+      }
+      try {
+        await scanner.start({ facingMode: "environment" }, config, onScan, onError);
+      } catch (facingModeError) {
+        const cameras = await Html5Qrcode.getCameras();
+        const rearCamera = cameras.find((camera) => /back|rear|environment|world/i.test(camera.label)) || cameras[0];
+        if (!rearCamera) throw facingModeError;
+        await scanner.start({ deviceId: { exact: rearCamera.id } }, config, onScan, onError);
+      }
+    };
+    startScanner().catch((error: unknown) => {
+      if (cancelled) return;
+      const detail = error instanceof Error ? error.message : "Camera permission was denied.";
+      setMessage(`Camera unavailable: ${detail} Check browser camera permission for oslowtech.in.`);
+      scannerRef.current = null;
       setScannerOpen(false);
-    }
+    });
+    return () => {
+      cancelled = true;
+      if (scanner.isScanning) scanner.stop().catch(() => undefined);
+      scannerRef.current = null;
+    };
+  }, [scannerOpen]);
+  function toggleScanner() {
+    setScannerOpen((open) => !open);
   }
   async function submitActivity(event: React.FormEvent<HTMLFormElement>, activityName: string) {
     event.preventDefault();
