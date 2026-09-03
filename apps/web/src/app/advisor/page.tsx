@@ -30,36 +30,29 @@ export default async function AdvisorPage() {
     .select("user_id")
     .eq("organization_id", membership.organization_id)
     .eq("status", "active");
-  const consentedIds = (connections || []).map((connection) => connection.user_id);
-  const { data: customerMemberships, error: customerError } = await supabase
-    .from("organization_members")
-    .select("user_id")
-    .eq("organization_id", membership.organization_id)
-    .eq("role", "customer")
-    .in("user_id", consentedIds.length ? consentedIds : ["00000000-0000-0000-0000-000000000000"]);
-  const customerIds = (customerMemberships || []).map((customer) => customer.user_id);
+  const customerIds = [...new Set((connections || []).map((connection) => connection.user_id))];
   const [profilesResult, financialProfilesResult] = await Promise.all([
     supabase.from("profiles").select("id, full_name").in("id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]),
     supabase.from("financial_profiles").select("user_id, employment_type").in("user_id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]),
   ]);
   const { data: profiles, error: profilesError } = profilesResult;
   const { data: financialProfiles, error: financialProfilesError } = financialProfilesResult;
-  const consented = new Set(consentedIds);
+  const consented = new Set(customerIds);
   const { data: transactions, error: transactionsError } = await supabase.from("transactions").select("user_id, amount, direction, description, source").in("user_id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]);
-  const cases: CustomerCase[] = (customerMemberships || []).filter((customer) => consented.has(customer.user_id)).map((customer) => {
-    const rows = (transactions || []).filter((transaction) => transaction.user_id === customer.user_id);
-    const profile = (profiles || []).find((item) => item.id === customer.user_id);
-    const financialProfile = (financialProfiles || []).find((item) => item.user_id === customer.user_id);
+  const cases: CustomerCase[] = customerIds.filter((customerId) => consented.has(customerId)).map((customerId) => {
+    const rows = (transactions || []).filter((transaction) => transaction.user_id === customerId);
+    const profile = (profiles || []).find((item) => item.id === customerId);
+    const financialProfile = (financialProfiles || []).find((item) => item.user_id === customerId);
     const income = rows.filter((row) => row.direction === "credit").reduce((sum, row) => sum + Number(row.amount), 0);
     const expenses = rows.filter((row) => row.direction === "debit").reduce((sum, row) => sum + Number(row.amount), 0);
     const ratio = income ? expenses / income : 1;
     const risk_level = !rows.length ? "LOW" : ratio > 0.9 ? "HIGH" : ratio > 0.7 ? "MEDIUM" : "LOW";
-    return { id: customer.user_id, name: profile?.full_name || "Unnamed customer", employment_type: financialProfile?.employment_type || "Not provided", risk_level, trend: ratio > 0.9 ? "↓↓" : ratio > 0.7 ? "→" : "↑", buffer_days: Math.max(0, Math.round((income - expenses) / Math.max(1, expenses) * 30)), income_volatility: `${rows.length} records`, intervention_status: risk_level === "HIGH" ? "Review required" : "Monitored", primary_source: rows.find((row) => row.direction === "credit")?.source || "Not provided" };
+    return { id: customerId, name: profile?.full_name || "Unnamed customer", employment_type: financialProfile?.employment_type || "Not provided", risk_level, trend: ratio > 0.9 ? "↓↓" : ratio > 0.7 ? "→" : "↑", buffer_days: Math.max(0, Math.round((income - expenses) / Math.max(1, expenses) * 30)), income_volatility: `${rows.length} records`, intervention_status: risk_level === "HIGH" ? "Review required" : "Monitored", primary_source: rows.find((row) => row.direction === "credit")?.source || "Not provided" };
   });
   const highRisk = cases.filter((customer) => customer.risk_level === "HIGH").length;
   const mediumRisk = cases.filter((customer) => customer.risk_level === "MEDIUM").length;
   const stable = cases.length - highRisk - mediumRisk;
-  const portfolioError = customerError || profilesError || financialProfilesError || connectionsError || transactionsError;
+  const portfolioError = profilesError || financialProfilesError || connectionsError || transactionsError;
   const portfolioMessage = portfolioError
     ? `Unable to load the bank portfolio: ${portfolioError.message}`
     : cases.length

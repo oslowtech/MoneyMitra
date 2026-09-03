@@ -54,7 +54,6 @@ CREATE POLICY "Staff can view customer bank connections in their organization"
     auth.uid() = user_id
     OR (
       status = 'active'
-      AND public.is_org_staff(user_id)
       AND EXISTS (
         SELECT 1
         FROM public.organization_members staff
