@@ -15,7 +15,8 @@ import {
   UserPlus,
   UserRound,
   Menu,
-  X
+  X,
+  BookOpen
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -31,6 +32,7 @@ const navItems = [
   { name: 'Simulator', href: '/simulator', icon: SlidersHorizontal },
   { name: 'Advisor Portal', href: '/advisor', icon: UserCheck },
   { name: 'Profile', href: '/profile', icon: UserRound },
+  { name: 'User Guide', href: '/guide', icon: BookOpen },
 ];
 
 export function Navigation() {
