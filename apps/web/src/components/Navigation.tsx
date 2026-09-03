@@ -13,6 +13,7 @@ import {
   UserCheck,
   ShieldCheck,
   UserPlus
+  , UserRound
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut } from '@/app/auth/actions';
@@ -26,6 +27,7 @@ const navItems = [
   { name: 'Insights', href: '/insights', icon: TrendingUp },
   { name: 'Simulator', href: '/simulator', icon: SlidersHorizontal },
   { name: 'Advisor Portal', href: '/advisor', icon: UserCheck },
+  { name: 'Profile', href: '/profile', icon: UserRound },
 ];
 
 export function Navigation() {
@@ -72,11 +74,11 @@ export function Navigation() {
       {/* Footer User / Onboarding Links */}
       <div className="pt-4 border-t border-border space-y-2">
         <Link
-          href="/onboarding"
+          href="/profile"
           className="flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
         >
           <UserPlus className="h-4 w-4" />
-          <span>Gig Onboarding Setup</span>
+          <span>Money Mantra Setup</span>
         </Link>
         <div className="flex items-center justify-between px-3 py-2 text-xs text-muted-foreground">
           <span className="flex items-center space-x-1">
