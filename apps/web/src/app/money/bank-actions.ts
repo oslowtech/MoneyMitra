@@ -38,13 +38,16 @@ export async function connectBank(formData: FormData): Promise<BankActionResult>
     return { success: false, message: "Bank, provider, and provider connection reference are required." };
   }
 
-  const { data: organization, error: organizationError } = await supabase
+  const { data: organizations, error: organizationError } = await supabase
     .from("organizations")
     .select("id")
     .eq("name", institutionName)
     .eq("type", "bank")
-    .maybeSingle();
+    .order("status", { ascending: false })
+    .order("created_at", { ascending: true })
+    .limit(1);
   if (organizationError) return { success: false, message: `Unable to find bank organization: ${organizationError.message}` };
+  const organization = organizations?.[0];
   if (!organization) return { success: false, message: "This bank is not configured yet. Ask an administrator to create its bank organization first." };
 
   const { error } = await supabase.from("bank_connections").upsert({
